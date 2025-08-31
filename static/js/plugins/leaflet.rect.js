@@ -250,7 +250,7 @@ export default void (function (factory) {
 
 			this.map2000.value = `Map.Setup([Chunk(Box(${chunk.x1},${chunk.y1},${chunk.x2},${
 				chunk.y2
-			}]), ${this._map.getPlane()}));`
+			}), ${this._map.getPlane()})]);`
 		},
 
 		expand: function () {
