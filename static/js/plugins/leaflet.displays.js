@@ -36,7 +36,7 @@ export default void function (factory) {
                 this._map = map;
                 this._container = L.DomUtil.create('div', "leaflet-control-layers leaflet-control-display");
 
-                this.collapsed = this.createIcon(this.options.icon);
+                this.collapsed = this.createIcon(this.options.label);
                 L.DomEvent.on(this.collapsed, {
                     click: this.expand,
 
@@ -90,11 +90,10 @@ export default void function (factory) {
 
             collapsed: undefined,
 
-            createIcon: function (icon) {
+            createIcon: function (label) {
                 let container = L.DomUtil.create('div', "leaflet-control-display-collapsed");
-                let img = L.DomUtil.create('img', "leaflet-control-display-icon");
-                img.src = icon;
-                container.append(img);
+                let span = L.DomUtil.create('span', "leaflet-control-display-label-icon", container);
+                span.textContent = label;
                 return container;
             },
 
@@ -253,7 +252,7 @@ export default void function (factory) {
                 expand: true,
                 position: 'bottomleft',
                 title: 'Display objects',
-                icon: 'images/objects.png',
+                label: 'OBJ',
             },
 
             onAdd: function (map) {
@@ -350,7 +349,7 @@ export default void function (factory) {
                 expand: true,
                 position: 'bottomleft',
                 title: 'Display NPCs',
-                icon: 'images/npcs.png',
+                label: 'NPC',
             },
             onAdd: function (map) {
                 return L.Control.Display.prototype.onAdd.call(this, map);
@@ -464,7 +463,7 @@ export default void function (factory) {
             options: {
                 position: 'bottomleft',
                 title: 'Display objects',
-                icon: 'images/items.png',
+                label: 'ITM',
             },
 
             onAdd: function (map) {
@@ -480,7 +479,7 @@ export default void function (factory) {
             options: {
                 position: 'bottomleft',
                 title: 'Display varbits',
-                icon: 'images/Flag.png',
+                label: 'MAP',
             },
 
             onAdd: function (map) {
@@ -584,7 +583,7 @@ export default void function (factory) {
             options: {
                 position: 'bottomleft',
                 title: 'Visit Pathfinder',
-                icon: 'images/favicon_skavid_map.png',
+                label: 'PATH',
             },
             onAdd: function (map) {
                 let container = L.Control.Display.prototype.onAdd.call(this, map);
