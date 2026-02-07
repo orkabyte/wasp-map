@@ -284,8 +284,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
 	width: 34px;
 	height: 34px;
 	line-height: 34px;
-	display: block;
-	text-align: center;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	text-decoration: none;
 	color: #e0e0e8;
 	transition: background-color 0.15s;
@@ -294,7 +295,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .leaflet-control-layers-toggle {
 	background-position: 50% 50%;
 	background-repeat: no-repeat;
-	display: block;
 	}
 .leaflet-bar a:hover {
 	background-color: #2a2a3c;
