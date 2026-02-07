@@ -49,18 +49,11 @@ export default void function (factory) {
                 this._container.title = this.options.title;
                 L.DomEvent.disableClickPropagation(this._container);
 
-                let closeIcon = L.DomUtil.create('a', "leaflet-control-display-icon-close");
-                L.DomEvent.on(closeIcon, {
-                    click: this.collapse,
-                }, this);
-                L.DomEvent.disableClickPropagation(closeIcon);
-
                 let expandedContent = this.createInterface();
                 let expandedContentContainer = L.DomUtil.create('div', 'leaflet-control-display-container-expanded');
                 expandedContentContainer.appendChild(expandedContent)
 
                 this.expanded = L.DomUtil.create('div', "leaflet-control-display-panel");
-                this.expanded.appendChild(closeIcon);
                 this.expanded.appendChild(expandedContentContainer);
                 this.expanded.style.display = 'none';
                 this._container.appendChild(this.expanded);
