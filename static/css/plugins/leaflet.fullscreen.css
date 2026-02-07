@@ -1,14 +1,21 @@
 .leaflet-control-fullscreen a {
-  background:#fff url(../../images/fullscreen.png) no-repeat 0 0;
-  background-size:26px 52px;
+  position:relative;
   }
-  .leaflet-touch .leaflet-control-fullscreen a {
+  .leaflet-control-fullscreen a::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:url(../../images/fullscreen.png) no-repeat 0 0;
+  background-size:26px 52px;
+  filter:invert(1);
+  }
+  .leaflet-touch .leaflet-control-fullscreen a::after {
     background-position: 2px 2px;
     }
-  .leaflet-fullscreen-on .leaflet-control-fullscreen a {
+  .leaflet-fullscreen-on .leaflet-control-fullscreen a::after {
     background-position:0 -26px;
     }
-  .leaflet-touch.leaflet-fullscreen-on .leaflet-control-fullscreen a {
+  .leaflet-touch.leaflet-fullscreen-on .leaflet-control-fullscreen a::after {
     background-position: 2px -24px;
     }
 
@@ -34,7 +41,7 @@
 @media
   (-webkit-min-device-pixel-ratio:2),
   (min-resolution:192dpi) {
-    .leaflet-control-fullscreen a {
+    .leaflet-control-fullscreen a::after {
       background-image:url(../../images/fullscreen@2x.png);
     }
   }

@@ -46,7 +46,8 @@ img.huechange { filter: hue-rotate(120deg); }
  }
  
 .tabbutton {
-	background: #f8f8f8;
+	background: #2a2a3c;
+	color: #e0e0e8;
 	display: inline-block;
 	padding: 5px;
 	margin-left: -1px;
@@ -55,6 +56,12 @@ img.huechange { filter: hue-rotate(120deg); }
 	left: 1px;
 	top: 1px;
 	cursor: pointer;
+	border: 1px solid #3a3a4e;
+	transition: background-color 0.15s;
+}
+
+.tabbutton:hover {
+	background: #3a3a5e;
 }
 
 .content {
@@ -69,13 +76,15 @@ img.huechange { filter: hue-rotate(120deg); }
 	left: 50%;
 	display: table;
 	transform: translate(-50%, 0%);
-	background: #fff;
+	background: #1e1e2e;
+	color: #e0e0e8;
 	background-clip: padding-box;
 	padding: 5px 5px;
 	margin-left: 10px;
 	margin-top: 10px;
-	border-radius: 5px;
+	border-radius: 8px;
 	font: 20px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
+	box-shadow: 0 1px 5px rgba(0,0,0,0.5);
 }
 
 .leaflet-control-message-content{
@@ -87,7 +96,7 @@ img.huechange { filter: hue-rotate(120deg); }
 .leaflet-control-message-clear{
 	position: relative;
 	margin-left: 5px;
-	color: grey;
+	color: #9999aa;
 	display: inline-block;
 	pointer-events: auto;
 }
@@ -140,4 +149,13 @@ img.huechange { filter: hue-rotate(120deg); }
 
 .leaflet-center.leaflet-middle {
   transform: translate(-50%, -50%);
+}
+
+.leaflet-control select {
+	background: #2a2a3c;
+	border: 1px solid #3a3a4e;
+	color: #e0e0e8;
+	border-radius: 6px;
+	padding: 4px 8px;
+	outline: none;
 }
