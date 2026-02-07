@@ -141,7 +141,7 @@ export default void (function (factory) {
 		options: {
 			position: "bottomleft",
 			title: "Dimensions:",
-			icon: "images/Blue_square_(Prisoner_of_Glouphrie).png"
+			label: "MAP"
 		},
 
 		createInterface: function () {
