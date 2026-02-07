@@ -12,6 +12,7 @@ import "../plugins/leaflet.urllayers.js"
 import "../plugins/leaflet.rect.js"
 import "../plugins/leaflet.clickcopy.js"
 import "../plugins/leaflet.maplabels.js"
+import "../plugins/leaflet.locationSearch.js"
 
 void (function (global) {
 	let runescape_map = (global.runescape_map = L.gameMap("map", {
@@ -36,7 +37,8 @@ void (function (global) {
 		maxZoom: 8,
 		doubleClickZoom: false,
 		showMapBorder: true,
-		enableUrlLocation: true
+		enableUrlLocation: true,
+		locationSearch: true
 	}))
 
 	L.control.display
