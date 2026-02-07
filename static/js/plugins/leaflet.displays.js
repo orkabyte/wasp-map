@@ -32,7 +32,12 @@ export default void function (factory) {
     }
 
     L.Control.Display = L.Control.extend({
+            statics: {
+                _instances: [],
+            },
+
             onAdd: function (map) {
+                L.Control.Display._instances.push(this);
                 this._map = map;
                 this._container = L.DomUtil.create('div', "leaflet-control-layers leaflet-control-display");
 
@@ -79,6 +84,11 @@ export default void function (factory) {
             // @method expand(): this
             // Expand the control container if collapsed.
             expand: function () {
+                L.Control.Display._instances.forEach(function (ctrl) {
+                    if (ctrl !== this && ctrl._expanded) {
+                        ctrl.collapse();
+                    }
+                }, this);
                 this.expanded.style.display = '';
                 L.DomUtil.addClass(this.collapsed, 'leaflet-control-display-collapsed-active');
                 this._expanded = true;
@@ -113,7 +123,10 @@ export default void function (factory) {
             },
 
             onRemove: function (map) {
-                // Nothing to do here
+                var idx = L.Control.Display._instances.indexOf(this);
+                if (idx !== -1) {
+                    L.Control.Display._instances.splice(idx, 1);
+                }
             },
 
             setSearchParams: function (parameters) {
