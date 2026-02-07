@@ -10,6 +10,7 @@ WaspScripts Web Map — an interactive Old School RuneScape (OSRS) map built on 
 
 ```bash
 # Install dependencies (first-time setup includes submodule tile generation)
+git submodule update --init --recursive
 bun install
 cd static/layers-osrs/ && bun install && bun start && cd ../..
 
@@ -27,6 +28,9 @@ bun test
 
 # Formatting
 bunx prettier --write .
+
+# Update map tiles (when OSRS map updates are available)
+cd static/layers-osrs && git pull origin master && rm -rf map/ && bun start && cd ../..
 ```
 
 ## Architecture
