@@ -54,6 +54,10 @@ import "../leaflet.js"
 			L.DomEvent.disableClickPropagation(container)
 			L.DomEvent.disableScrollPropagation(container)
 
+			var icon = L.DomUtil.create("span", "leaflet-control-location-search-icon", container)
+			icon.innerHTML =
+				'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6a6a7e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+
 			var input = L.DomUtil.create("input", "leaflet-control-location-search-input", container)
 			input.type = "text"
 			input.placeholder = this.options.placeholder

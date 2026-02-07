@@ -26,6 +26,8 @@
 	border-radius: 8px;
 	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 	border: 1px solid #3a3a4e;
+	display: flex;
+	flex-direction: column;
 }
 
 .leaflet-control-display-form {
@@ -33,7 +35,7 @@
 	display: grid;
 	grid-template-columns: auto 1fr;
 	grid-gap: 8px;
-	width: min-content;
+	min-width: 220px;
 	align-items: center;
 }
 
@@ -46,6 +48,7 @@
 	grid-column: 1 / 2;
 	color: #9999aa;
 	font-size: 12px;
+	white-space: nowrap;
 }
 
 .leaflet-control-display-input,
@@ -64,6 +67,7 @@
 	font-size: 13px;
 	outline: none;
 	transition: background-color 0.15s, border-color 0.15s;
+	min-width: 160px;
 }
 
 .leaflet-control-display-input:focus,
@@ -93,7 +97,8 @@
 }
 
 .leaflet-control-map-input {
-	width: 400px;
+	width: auto;
+	min-width: 200px;
 	background: #2a2a3c;
 	border: 1px solid #3a3a4e;
 	color: #e0e0e8;
@@ -111,12 +116,11 @@
 
 .leaflet-control-display-container-expanded {
 	display: block;
-	float: left;
 }
 
 .leaflet-control-display-icon-close {
 	display: block;
-	float: right;
+	align-self: flex-end;
 	width: 22px;
 	height: 22px;
 	margin: 5px;

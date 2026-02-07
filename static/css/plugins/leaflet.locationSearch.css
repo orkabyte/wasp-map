@@ -8,6 +8,17 @@
 	box-sizing: border-box;
 }
 
+.leaflet-control-location-search-icon {
+	position: absolute;
+	left: 10px;
+	top: 50%;
+	transform: translateY(-50%);
+	display: flex;
+	align-items: center;
+	pointer-events: none;
+	z-index: 1;
+}
+
 .leaflet-control-location-search-input {
 	width: 220px;
 	height: 38px;
@@ -16,7 +27,7 @@
 	border: none;
 	color: #e0e0e8;
 	border-radius: 8px;
-	padding: 8px 12px;
+	padding: 8px 12px 8px 32px;
 	font-size: 13px;
 	outline: none;
 	transition: background-color 0.15s;
