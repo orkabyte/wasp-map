@@ -4,19 +4,13 @@
   .leaflet-control-fullscreen a::after {
   content:'';
   position:absolute;
-  inset:0;
-  background:url(../../images/fullscreen.png) no-repeat 0 0;
-  background-size:26px 52px;
+  inset:4px;
+  background:url(../../images/fullscreen.png) no-repeat center top;
+  background-size:100% 200%;
   filter:invert(1);
   }
-  .leaflet-touch .leaflet-control-fullscreen a::after {
-    background-position: 2px 2px;
-    }
   .leaflet-fullscreen-on .leaflet-control-fullscreen a::after {
-    background-position:0 -26px;
-    }
-  .leaflet-touch.leaflet-fullscreen-on .leaflet-control-fullscreen a::after {
-    background-position: 2px -24px;
+    background-position:center bottom;
     }
 
 /* Do not combine these two rules; IE will break. */
