@@ -150,3 +150,10 @@ textarea {
 .leaflet-control-display-autocomplete-item.active {
 	background-color: #3a3a5e;
 }
+
+.leaflet-control-display-label-icon {
+	color: #ffffff;
+	font-size: 13px;
+	font-weight: 600;
+	user-select: none;
+}
