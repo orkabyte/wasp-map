@@ -17,9 +17,9 @@ import "../leaflet.js";
     L.Control.Plane = L.Control.extend({
         options: {
             position: "topright",
-            upicon: '<svg viewBox="0 0 64 64" height="24px" width="24px"><g style="display:inline" transform="translate(0,-233)"> <path d="m 27,238 -19,-0 7,7 -11,11 5,5 11,-11 7,7 z" style="fill:#000000;fill-opacity:1" /><path d="M 4,61 V 47 H 19 V 33 H 33 V 18 H 47 V 4 H 61 V 12 L 12,61 Z" style="display:inline;fill:#000000" transform="translate(0,233)"/></g></svg>',
+            upicon: '<svg viewBox="0 0 64 64" height="24px" width="24px"><g style="display:inline" transform="translate(0,-233)"> <path d="m 27,238 -19,-0 7,7 -11,11 5,5 11,-11 7,7 z" style="fill:#e0e0e8;fill-opacity:1" /><path d="M 4,61 V 47 H 19 V 33 H 33 V 18 H 47 V 4 H 61 V 12 L 12,61 Z" style="display:inline;fill:#e0e0e8" transform="translate(0,233)"/></g></svg>',
             downicon:
-                '<svg viewBox="0 0 64 64" height="24px" width="24px"><g style="display:inline" transform="translate(0,-233)"> <path d="m 4,261 19,0 -7,-7 11,-11 -5,-5 -11,11 -7,-7 z" style="fill:#000000;fill-opacity:1" /><path d="M 4,61 V 47 H 19 V 33 H 33 V 18 H 47 V 4 H 61 V 12 L 12,61 Z" style="display:inline;fill:#000000" transform="translate(0,233)"/></g></svg>',
+                '<svg viewBox="0 0 64 64" height="24px" width="24px"><g style="display:inline" transform="translate(0,-233)"> <path d="m 4,261 19,0 -7,-7 11,-11 -5,-5 -11,11 -7,-7 z" style="fill:#e0e0e8;fill-opacity:1" /><path d="M 4,61 V 47 H 19 V 33 H 33 V 18 H 47 V 4 H 61 V 12 L 12,61 Z" style="display:inline;fill:#e0e0e8" transform="translate(0,233)"/></g></svg>',
         },
 
         initialize: function (options) {
