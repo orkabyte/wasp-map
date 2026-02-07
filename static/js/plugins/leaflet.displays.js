@@ -92,6 +92,16 @@ export default void function (factory) {
                 this.expanded.style.display = '';
                 L.DomUtil.addClass(this.collapsed, 'leaflet-control-display-collapsed-active');
                 this._expanded = true;
+
+                var firstInstance = L.Control.Display._instances[0];
+                if (firstInstance && firstInstance._container && firstInstance !== this) {
+                    var offset = this._container.getBoundingClientRect().left
+                        - firstInstance._container.getBoundingClientRect().left;
+                    this.expanded.style.left = (-offset) + "px";
+                } else {
+                    this.expanded.style.left = "0";
+                }
+
                 return this;
             },
 
