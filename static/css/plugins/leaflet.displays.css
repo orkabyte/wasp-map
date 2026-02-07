@@ -1,9 +1,31 @@
+.leaflet-control-display {
+	position: relative;
+}
+
 .leaflet-control-display-collapsed {
-	width: 44px;
-	height: 44px;
+	width: 38px;
+	height: 38px;
 	display: grid;
 	place-items: center;
 	border-radius: 8px;
+	cursor: pointer;
+	transition: background-color 0.15s;
+}
+
+.leaflet-control-display-collapsed-active {
+	background: #3a3a5e;
+}
+
+.leaflet-control-display-panel {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	margin-top: 6px;
+	z-index: 1000;
+	background: #1e1e2e;
+	border-radius: 8px;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+	border: 1px solid #3a3a4e;
 }
 
 .leaflet-control-display-form {
@@ -98,6 +120,7 @@
 	width: 22px;
 	height: 22px;
 	margin: 5px;
+	cursor: pointer;
 	background-image: linear-gradient(transparent, transparent),
 		url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 20 20%22%3E%3Ctitle%3Eclose%3C/title%3E%3Cpath d=%22M3.636 2.224l14.142 14.142-1.414 1.414L2.222 3.638z%22 fill=%22%23e0e0e8%22/%3E%3Cpath d=%22M17.776 3.636L3.634 17.778 2.22 16.364 16.362 2.222z%22 fill=%22%23e0e0e8%22/%3E%3C/svg%3E");
 }
@@ -117,18 +140,18 @@ textarea {
 
 .leaflet-control-display-autocomplete-dropdown {
 	position: absolute;
-	bottom: 100%;
+	top: 100%;
 	left: 0;
 	right: 0;
 	max-height: 200px;
 	overflow-y: auto;
 	background: #1e1e2e;
 	border: 1px solid #3a3a4e;
-	border-bottom: none;
-	box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.5);
+	border-top: none;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 	z-index: 1000;
 	display: none;
-	border-radius: 6px 6px 0 0;
+	border-radius: 0 0 6px 6px;
 }
 
 .leaflet-control-display-autocomplete-dropdown.visible {

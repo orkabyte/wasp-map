@@ -26,7 +26,6 @@ void (function (global) {
 		planeControl: true,
 		positionControl: true,
 		messageBox: true,
-		rect: true,
 		initialMapId: -1,
 		plane: 0,
 		x: 3200,
@@ -37,9 +36,15 @@ void (function (global) {
 		maxZoom: 8,
 		doubleClickZoom: false,
 		showMapBorder: true,
-		enableUrlLocation: true,
-		locationSearch: true
+		enableUrlLocation: true
 	}))
+
+	L.control.display
+		.npcs({
+			folder: "data_osrs",
+			show3d: true
+		})
+		.addTo(runescape_map)
 
 	L.control.display
 		.objects({
@@ -49,12 +54,24 @@ void (function (global) {
 		})
 		.addTo(runescape_map)
 
-	L.control.display
-		.npcs({
-			folder: "data_osrs",
-			show3d: true
-		})
-		.addTo(runescape_map)
+	let rectControl = L.control.display.rect()
+	rectControl.addTo(runescape_map)
+	rectControl.map1400.addEventListener("click", () => {
+		rectControl.map1400.select()
+		navigator.clipboard.writeText(rectControl.map1400.value).then(
+			() => runescape_map.addMessage(`Copied to clipboard: ${rectControl.map1400.value}`),
+			() => console.error("Cannot copy text to clipboard")
+		)
+	})
+	rectControl.map2000.addEventListener("click", () => {
+		rectControl.map2000.select()
+		navigator.clipboard.writeText(rectControl.map2000.value).then(
+			() => runescape_map.addMessage(`Copied to clipboard: ${rectControl.map2000.value}`),
+			() => console.error("Cannot copy text to clipboard")
+		)
+	})
+
+	L.control.locationSearch().addTo(runescape_map)
 
 	L.tileLayer
 		.main("layers-osrs/map/{zoom}/{plane}/{x}-{y}.png", {

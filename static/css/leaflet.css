@@ -162,6 +162,18 @@
 .leaflet-right .leaflet-control {
 	margin-right: 10px;
 	}
+.leaflet-top.leaflet-left {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 6px;
+	padding: 10px;
+	}
+.leaflet-top.leaflet-left .leaflet-control {
+	float: none;
+	clear: none;
+	margin: 0;
+	}
 
 
 /* zoom and fade animations */
