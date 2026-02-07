@@ -38,8 +38,7 @@ export default void function (factory) {
 
                 this.collapsed = this.createIcon(this.options.label);
                 L.DomEvent.on(this.collapsed, {
-                    click: this.expand,
-
+                    click: this.toggle,
                 }, this);
                 this._container.appendChild(this.collapsed);
                 this._container.title = this.options.title;
@@ -48,7 +47,6 @@ export default void function (factory) {
                 let closeIcon = L.DomUtil.create('a', "leaflet-control-display-icon-close");
                 L.DomEvent.on(closeIcon, {
                     click: this.collapse,
-
                 }, this);
                 L.DomEvent.disableClickPropagation(closeIcon);
 
@@ -56,26 +54,43 @@ export default void function (factory) {
                 let expandedContentContainer = L.DomUtil.create('div', 'leaflet-control-display-container-expanded');
                 expandedContentContainer.appendChild(expandedContent)
 
-                this.expanded = L.DomUtil.create('div', "leaflet-control-display");
+                this.expanded = L.DomUtil.create('div', "leaflet-control-display-panel");
                 this.expanded.appendChild(closeIcon);
                 this.expanded.appendChild(expandedContentContainer);
+                this.expanded.style.display = 'none';
+                this._container.appendChild(this.expanded);
 
                 return this._container;
+            },
+
+            _expanded: false,
+
+            // @method toggle(): this
+            // Toggle the control panel open/closed.
+            toggle: function () {
+                if (this._expanded) {
+                    this.collapse();
+                } else {
+                    this.expand();
+                }
+                return this;
             },
 
             // @method expand(): this
             // Expand the control container if collapsed.
             expand: function () {
-                this._container.innerHTML = '';
-                this._container.append(this.expanded);
+                this.expanded.style.display = '';
+                L.DomUtil.addClass(this.collapsed, 'leaflet-control-display-collapsed-active');
+                this._expanded = true;
                 return this;
             },
 
             // @method collapse(): this
             // Collapse the control container.
             collapse: function () {
-                this._container.innerHTML = '';
-                this._container.append(this.collapsed);
+                this.expanded.style.display = 'none';
+                L.DomUtil.removeClass(this.collapsed, 'leaflet-control-display-collapsed-active');
+                this._expanded = false;
                 return this;
             },
 
@@ -250,7 +265,7 @@ export default void function (factory) {
     L.Control.Display.Objects = L.Control.Display.extend({
             options: {
                 expand: true,
-                position: 'bottomleft',
+                position: 'topleft',
                 title: 'Display objects',
                 label: 'OBJ',
             },
@@ -347,7 +362,7 @@ export default void function (factory) {
     L.Control.Display.NPCs = L.Control.Display.extend({
             options: {
                 expand: true,
-                position: 'bottomleft',
+                position: 'topleft',
                 title: 'Display NPCs',
                 label: 'NPC',
             },

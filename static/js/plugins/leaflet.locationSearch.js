@@ -286,15 +286,6 @@ import "../leaflet.js"
 		}
 	})
 
-	L.Map.addInitHook(function () {
-		if (this.options.locationSearch) {
-			this.locationSearchControl = new L.Control.LocationSearch(
-				typeof this.options.locationSearch === "object" ? this.options.locationSearch : {}
-			)
-			this.addControl(this.locationSearchControl)
-		}
-	})
-
 	L.control.locationSearch = function (options) {
 		return new L.Control.LocationSearch(options)
 	}

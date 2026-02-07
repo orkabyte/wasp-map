@@ -15,7 +15,7 @@ import "../leaflet.js"
 })(function (L) {
 	L.Control.Position = L.Control.extend({
 		options: {
-			position: "topleft",
+			position: "bottomleft",
 			separator: ", ",
 			emptyString: "Unavailable",
 			prefix: "",
@@ -55,13 +55,13 @@ import "../leaflet.js"
 			this._map.on("move moveend zoom zoomend resize", this.redrawRect, this)
 			this._map.on("mouseout", this.clear.bind(this))
 
-			this._container.innerHTML = this.options.emptyString
+			this._container.style.display = "none"
 
 			return this._container
 		},
 
 		clear: function () {
-			this._container.innerHTML = this.options.emptyString
+			this._container.style.display = "none"
 			// hack to make it 'disappear'...not calling .remove()
 			// because otherwise `redrawRect` would have to check
 			//			every update that it's really on the map
@@ -185,6 +185,7 @@ import "../leaflet.js"
 			this.redrawRect()
 		},
 		redrawRect: function () {
+			this._container.style.display = ""
 			let position = this._map.containerPointToLatLng(this._containerPointCache)
 			this.globalX = parseInt(position.lng)
 			this.globalY = parseInt(position.lat)

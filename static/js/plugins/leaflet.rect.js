@@ -139,7 +139,7 @@ export default void (function (factory) {
 		},
 
 		options: {
-			position: "bottomleft",
+			position: "topleft",
 			title: "Dimensions:",
 			label: "MAP"
 		},
@@ -270,26 +270,4 @@ export default void (function (factory) {
 		return new L.Control.Display.Rect(options)
 	}
 
-	L.Map.addInitHook(function () {
-		if (this.options.rect) {
-			this.rect = L.control.display.rect()
-
-			this.addControl(this.rect)
-			this.rect.map1400.addEventListener("click", () => {
-				this.rect.map1400.select()
-				navigator.clipboard.writeText(this.rect.map1400.value).then(
-					() => this.addMessage(`Copied to clipboard: ${this.rect.map1400.value}`),
-					() => console.error("Cannot copy text to clipboard")
-				)
-			})
-
-			this.rect.map2000.addEventListener("click", () => {
-				this.rect.map2000.select()
-				navigator.clipboard.writeText(this.rect.map2000.value).then(
-					() => this.addMessage(`Copied to clipboard: ${this.rect.map2000.value}`),
-					() => console.error("Cannot copy text to clipboard")
-				)
-			})
-		}
-	})
 })

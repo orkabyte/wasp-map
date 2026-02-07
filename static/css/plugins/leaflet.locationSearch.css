@@ -4,10 +4,14 @@
 	border: 1px solid #3a3a4e;
 	border-radius: 8px;
 	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+	height: 38px;
+	box-sizing: border-box;
 }
 
 .leaflet-control-location-search-input {
 	width: 220px;
+	height: 38px;
+	box-sizing: border-box;
 	background: #2a2a3c;
 	border: none;
 	color: #e0e0e8;
