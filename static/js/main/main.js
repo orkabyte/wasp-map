@@ -22,9 +22,8 @@ void (function (global) {
 		],
 		maxBoundsViscosity: 0.5,
 		customZoomControl: true,
-		fullscreenControl: true,
+		fullscreenControl: false,
 		planeControl: true,
-		positionControl: true,
 		messageBox: true,
 		initialMapId: -1,
 		plane: 0,
@@ -72,6 +71,9 @@ void (function (global) {
 	})
 
 	L.control.locationSearch().addTo(runescape_map)
+
+	L.control.position().addTo(runescape_map)
+	L.control.fullscreen().addTo(runescape_map)
 
 	L.tileLayer
 		.main("layers-osrs/map/{zoom}/{plane}/{x}-{y}.png", {

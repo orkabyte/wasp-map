@@ -15,7 +15,7 @@ import "../leaflet.js"
 })(function (L) {
 	L.Control.Position = L.Control.extend({
 		options: {
-			position: "bottomleft",
+			position: "topright",
 			separator: ", ",
 			emptyString: "Unavailable",
 			prefix: "",
@@ -25,11 +25,38 @@ import "../leaflet.js"
 		initialize: function (options) {
 			L.setOptions(this, options)
 			this._map = null
+			this._panelOpen = false
 		},
 
 		onAdd: function (map) {
 			this._map = map
-			this._container = L.DomUtil.create("div", "leaflet-control-mouseposition")
+			this._container = L.DomUtil.create("div", "leaflet-control-position")
+
+			this._chunkBox = L.DomUtil.create(
+				"div",
+				"leaflet-control-position-box",
+				this._container
+			)
+			this._tileBox = L.DomUtil.create(
+				"div",
+				"leaflet-control-position-box",
+				this._container
+			)
+
+			this._panel = L.DomUtil.create(
+				"div",
+				"leaflet-control-position-panel",
+				this._container
+			)
+			var form = L.DomUtil.create("div", "leaflet-control-position-form", this._panel)
+			var label = L.DomUtil.create("span", "leaflet-control-position-label", form)
+			label.textContent = "Go to:"
+			this._input = L.DomUtil.create("input", "leaflet-control-position-input", form)
+			this._input.type = "text"
+			this._input.placeholder = "x, y"
+			var goBtn = L.DomUtil.create("button", "leaflet-control-position-go", form)
+			goBtn.textContent = "Go"
+
 			this._rect = L.rectangle(
 				[
 					[0, 0],
@@ -48,20 +75,61 @@ import "../leaflet.js"
 			}, 0)
 
 			L.DomEvent.disableClickPropagation(this._container)
-			L.DomEvent.on(this._container, "click", this._onSelect, this)
+			L.DomEvent.on(this._chunkBox, "click", this._togglePanel, this)
+			L.DomEvent.on(this._tileBox, "click", this._togglePanel, this)
+			L.DomEvent.on(goBtn, "click", this._onGo, this)
+			L.DomEvent.on(this._input, "keydown", function (e) {
+				if (e.key === "Enter") {
+					this._onGo()
+				}
+			}, this)
 			L.DomUtil.disableTextSelection()
 
 			this._map.on("mousemove", this._updateContainerPointCache, this)
 			this._map.on("move moveend zoom zoomend resize", this.redrawRect, this)
 			this._map.on("mouseout", this.clear.bind(this))
 
-			this._container.style.display = "none"
+			this._chunkBox.style.display = "none"
+			this._tileBox.style.display = "none"
 
 			return this._container
 		},
 
+		_togglePanel: function () {
+			this._panelOpen = !this._panelOpen
+			if (this._panelOpen) {
+				L.DomUtil.addClass(this._panel, "visible")
+				this._input.focus()
+			} else {
+				L.DomUtil.removeClass(this._panel, "visible")
+			}
+		},
+
+		_onGo: function () {
+			var input = this._input.value
+			if (input) {
+				var destination = this.interpret(input)
+				if (this.validateCoordinate(destination)) {
+					this.panMap(destination)
+					this.placeCrosshair(destination)
+					this._input.value = ""
+					this._panelOpen = false
+					L.DomUtil.removeClass(this._panel, "visible")
+				} else {
+					console.error(
+						input,
+						"was parsed as",
+						this.createString(destination),
+						"which is not a valid coordinate."
+					)
+				}
+			}
+		},
+
 		clear: function () {
-			this._container.style.display = "none"
+			if (this._panelOpen) return
+			this._chunkBox.style.display = "none"
+			this._tileBox.style.display = "none"
 			// hack to make it 'disappear'...not calling .remove()
 			// because otherwise `redrawRect` would have to check
 			//			every update that it's really on the map
@@ -109,24 +177,6 @@ import "../leaflet.js"
 				}
 			}
 			return undefined
-		},
-
-		_onSelect: function (e) {
-			let input = prompt("Go to:")
-			if (input) {
-				let destination = this.interpret(input)
-				if (this.validateCoordinate(destination)) {
-					this.panMap(destination)
-					this.placeCrosshair(destination)
-				} else {
-					console.error(
-						input,
-						"was parsed as",
-						this.createString(destination),
-						"which is not a valid coordinate."
-					)
-				}
-			}
 		},
 
 		panMap: function (destination) {
@@ -192,35 +242,20 @@ import "../leaflet.js"
 			this.redrawRect()
 		},
 		redrawRect: function () {
-			this._container.style.display = ""
+			this._chunkBox.style.display = "flex"
+			this._tileBox.style.display = "flex"
 			let position = this._map.containerPointToLatLng(this._containerPointCache)
 			this.globalX = parseInt(position.lng)
 			this.globalY = parseInt(position.lat)
-			let chunkCoords =
-				"Chunk(" +
-				this.createString(this.convert(this.globalX, this.globalY)) +
-				", " +
-				parseInt(this._map._plane) +
-				")"
-			let simbaCoords =
-				"[" +
-				parseInt(this.globalX * 4 - 4096 + 13056 * this._map._plane) +
-				", " +
-				parseInt(60 - (this.globalY * 4 - 50370)) +
-				"]"
+			let chunk = this.convert(this.globalX, this.globalY)
 
-			this._container.innerHTML = chunkCoords + "<br>" + simbaCoords
+			this._chunkBox.textContent = "Chunk(" + chunk.chunkX + ", " + chunk.chunkY + ")"
+			this._tileBox.textContent = "[" + this.globalX + ", " + this.globalY + "]"
+
 			this._rect.setBounds([
 				[this.globalY, this.globalX],
 				[this.globalY + 1, this.globalX + 1]
 			])
-		}
-	})
-
-	L.Map.addInitHook(function () {
-		if (this.options.positionControl) {
-			this.positionControl = new L.Control.Position(this.options.positionControl)
-			this.addControl(this.positionControl)
 		}
 	})
 
