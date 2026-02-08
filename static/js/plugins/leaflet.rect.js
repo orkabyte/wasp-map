@@ -17,24 +17,30 @@ export default void (function (factory) {
 })(function (L) {
 	let VertexIcon = L.DivIcon.extend({
 		options: {
-			iconSize: new L.Point(8, 8)
+			iconSize: new L.Point(14, 14),
+			className: "leaflet-vertex-handle"
 		}
 	})
 
 	let Vertex = L.Marker.extend({
-		initialize: function (latlng, owner) {
+		initialize: function (latlng, owner, cursor) {
 			L.Util.setOptions(this, {
 				draggable: true,
 				icon: new VertexIcon(),
 				owner: owner
 			})
+			this._cursor = cursor
 			this._latlng = L.latLng(latlng)
 			this.trunc()
 		},
 
 		onAdd: function (map) {
 			this.on("drag", this.onDragEnd.bind(this))
-			return L.Marker.prototype.onAdd.call(this, map)
+			L.Marker.prototype.onAdd.call(this, map)
+			if (this._cursor) {
+				this._icon.style.cursor = this._cursor
+			}
+			return this
 		},
 
 		onDragEnd: function () {
@@ -52,30 +58,183 @@ export default void (function (factory) {
 		}
 	})
 
+	// Edge cursors: S=ns, W=ew, N=ns, E=ew
+	let edgeDefs = [
+		{ name: "south", vertexIndices: [0, 3], axis: "lat", cursor: "ns-resize" },
+		{ name: "west", vertexIndices: [0, 1], axis: "lng", cursor: "ew-resize" },
+		{ name: "north", vertexIndices: [1, 2], axis: "lat", cursor: "ns-resize" },
+		{ name: "east", vertexIndices: [2, 3], axis: "lng", cursor: "ew-resize" }
+	]
+
 	L.DraggableSquare = L.Rectangle.extend({
 		initialize: function (latLngBounds, options) {
 			let bounds = L.latLngBounds(latLngBounds)
-			// do not change order, important
-			this.vertices = [
+			// do not change order, important: SW, NW, NE, SE
+			let corners = [
 				bounds.getSouthWest(),
 				bounds.getNorthWest(),
 				bounds.getNorthEast(),
 				bounds.getSouthEast()
-			].map(this.createVertex.bind(this))
+			]
+			// Per-corner resize cursors
+			let cursors = ["nesw-resize", "nwse-resize", "nesw-resize", "nwse-resize"]
+			this.vertices = corners.map((c, i) => this.createVertex(c, cursors[i]))
+			this.edges = []
+			this._dragging = false
+			this._edgeDragging = false
 			return L.Rectangle.prototype.initialize.call(this, bounds, options)
 		},
 
 		onAdd: function (map) {
 			this.vertices.forEach((v) => v.trunc().addTo(map))
+			this._createEdges(map)
 
 			L.Rectangle.prototype.onAdd.call(this, map)
+
+			// Drag-to-move handlers
+			this._onDragStart = this._onDragStart.bind(this)
+			this._onDragMove = this._onDragMove.bind(this)
+			this._onDragEnd = this._onDragEnd.bind(this)
+			this._onEdgeDragMove = this._onEdgeDragMove.bind(this)
+			this._onEdgeDragEnd = this._onEdgeDragEnd.bind(this)
+
+			this.on("mousedown", this._onDragStart)
+
 			this.options.owner.update(this.getBounds())
 		},
 
-		createVertex: function (latlng) {
-			return new Vertex(latlng, this)
+		createVertex: function (latlng, cursor) {
+			return new Vertex(latlng, this, cursor)
 		},
 
+		// --- Edge handles ---
+		_createEdges: function (map) {
+			this.edges = edgeDefs.map((def) => {
+				let v1 = this.vertices[def.vertexIndices[0]]
+				let v2 = this.vertices[def.vertexIndices[1]]
+				let line = L.polyline([v1.getLatLng(), v2.getLatLng()], {
+					weight: 12,
+					opacity: 0,
+					bubblingMouseEvents: false,
+					className: "leaflet-edge-handle"
+				})
+				line._edgeDef = def
+				line.addTo(map)
+
+				// Set per-edge cursor on the DOM element
+				line.getElement().style.cursor = def.cursor
+
+				line.on("mousedown", this._onEdgeDragStart, this)
+				return line
+			})
+		},
+
+		_updateEdges: function () {
+			if (!this.edges.length) return
+			edgeDefs.forEach((def, i) => {
+				let v1 = this.vertices[def.vertexIndices[0]]
+				let v2 = this.vertices[def.vertexIndices[1]]
+				this.edges[i].setLatLngs([v1.getLatLng(), v2.getLatLng()])
+			})
+		},
+
+		_onEdgeDragStart: function (e) {
+			L.DomEvent.stopPropagation(e.originalEvent)
+			L.DomEvent.preventDefault(e.originalEvent)
+			this._edgeDragging = true
+			this._activeEdge = e.target._edgeDef
+			this._dragStartLatLng = this._map.mouseEventToLatLng(e.originalEvent)
+			this._map.dragging.disable()
+
+			this._map.on("mousemove", this._onEdgeDragMove)
+			this._map.on("mouseup", this._onEdgeDragEnd)
+			L.DomEvent.on(document, "mouseup", this._onEdgeDragEnd)
+		},
+
+		_onEdgeDragMove: function (e) {
+			if (!this._edgeDragging) return
+			let def = this._activeEdge
+			let current = e.latlng
+			let delta =
+				def.axis === "lat"
+					? Math.trunc(current.lat) - Math.trunc(this._dragStartLatLng.lat)
+					: Math.trunc(current.lng) - Math.trunc(this._dragStartLatLng.lng)
+			if (delta === 0) return
+
+			this._dragStartLatLng = current
+
+			def.vertexIndices.forEach((vi) => {
+				let v = this.vertices[vi]
+				let pos = v.getLatLng()
+				let newPos =
+					def.axis === "lat"
+						? L.latLng(Math.trunc(pos.lat + delta), pos.lng)
+						: L.latLng(pos.lat, Math.trunc(pos.lng + delta))
+				v.setLatLng(newPos)
+			})
+
+			let newBounds = L.latLngBounds(this.vertices.map((v) => v.getLatLng()))
+			this.setRectBounds(newBounds)
+			this._updateEdges()
+			this.options.owner.update(newBounds)
+		},
+
+		_onEdgeDragEnd: function () {
+			if (!this._edgeDragging) return
+			this._edgeDragging = false
+			this._activeEdge = null
+			this._map.dragging.enable()
+
+			this._map.off("mousemove", this._onEdgeDragMove)
+			this._map.off("mouseup", this._onEdgeDragEnd)
+			L.DomEvent.off(document, "mouseup", this._onEdgeDragEnd)
+		},
+
+		// --- Drag to move ---
+		_onDragStart: function (e) {
+			if (this._edgeDragging) return
+			L.DomEvent.stopPropagation(e.originalEvent)
+			L.DomEvent.preventDefault(e.originalEvent)
+			this._dragging = true
+			this._dragStartLatLng = this._map.mouseEventToLatLng(e.originalEvent)
+			this._map.dragging.disable()
+
+			this._map.on("mousemove", this._onDragMove)
+			this._map.on("mouseup", this._onDragEnd)
+			L.DomEvent.on(document, "mouseup", this._onDragEnd)
+		},
+
+		_onDragMove: function (e) {
+			if (!this._dragging) return
+			let current = e.latlng
+			let dLat = Math.trunc(current.lat) - Math.trunc(this._dragStartLatLng.lat)
+			let dLng = Math.trunc(current.lng) - Math.trunc(this._dragStartLatLng.lng)
+			if (dLat === 0 && dLng === 0) return
+
+			this._dragStartLatLng = current
+
+			this.vertices.forEach((v) => {
+				let pos = v.getLatLng()
+				v.setLatLng(L.latLng(Math.trunc(pos.lat + dLat), Math.trunc(pos.lng + dLng)))
+			})
+
+			let newBounds = L.latLngBounds(this.vertices.map((v) => v.getLatLng()))
+			this.setRectBounds(newBounds)
+			this._updateEdges()
+			this.options.owner.update(newBounds)
+		},
+
+		_onDragEnd: function () {
+			if (!this._dragging) return
+			this._dragging = false
+			this._map.dragging.enable()
+
+			this._map.off("mousemove", this._onDragMove)
+			this._map.off("mouseup", this._onDragEnd)
+			L.DomEvent.off(document, "mouseup", this._onDragEnd)
+		},
+
+		// --- Vertex corner resize ---
 		update: function (changedVertex) {
 			let i = (this.vertices.indexOf(changedVertex) + 2) & 0x3
 			let oppositeVertex = this.vertices[i]
@@ -94,6 +253,7 @@ export default void (function (factory) {
 			let newLatLng2 = L.latLng(corner2.lat, corner1.lng)
 			otherVertices[1].setLatLng(newLatLng2)
 
+			this._updateEdges()
 			this.options.owner.update(newBounds)
 		},
 
@@ -111,9 +271,13 @@ export default void (function (factory) {
 			this.vertices.forEach((v, i) => v.setLatLng(positions[i]).trunc())
 			bounds = L.latLngBounds(this.vertices.map((v) => v.getLatLng()))
 			this.setRectBounds(bounds)
+			this._updateEdges()
 		},
 
 		remove: function () {
+			if (this._dragging) this._onDragEnd()
+			if (this._edgeDragging) this._onEdgeDragEnd()
+			this.edges.forEach((e) => e.remove())
 			this.vertices.forEach((v) => v.remove())
 			return L.Rectangle.prototype.remove.call(this)
 		}
@@ -162,7 +326,13 @@ export default void (function (factory) {
 					[3200, 3232]
 				],
 				{
-					owner: this
+					owner: this,
+					color: "#4a4a6a",
+					fillColor: "#3a3a5e",
+					fillOpacity: 0.15,
+					weight: 2,
+					className: "leaflet-draggable-rect",
+					bubblingMouseEvents: false
 				}
 			)
 
