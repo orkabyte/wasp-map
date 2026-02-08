@@ -26,6 +26,7 @@ import "../leaflet.js"
 			L.setOptions(this, options)
 			this._map = null
 			this._panelOpen = false
+			this._panelMode = null
 		},
 
 		onAdd: function (map) {
@@ -49,8 +50,8 @@ import "../leaflet.js"
 				this._container
 			)
 			var form = L.DomUtil.create("div", "leaflet-control-position-form", this._panel)
-			var label = L.DomUtil.create("span", "leaflet-control-position-label", form)
-			label.textContent = "Go to:"
+			this._label = L.DomUtil.create("span", "leaflet-control-position-label", form)
+			this._label.textContent = "Go to:"
 			this._input = L.DomUtil.create("input", "leaflet-control-position-input", form)
 			this._input.type = "text"
 			this._input.placeholder = "x, y"
@@ -75,8 +76,22 @@ import "../leaflet.js"
 			}, 0)
 
 			L.DomEvent.disableClickPropagation(this._container)
-			L.DomEvent.on(this._chunkBox, "click", this._togglePanel, this)
-			L.DomEvent.on(this._tileBox, "click", this._togglePanel, this)
+			L.DomEvent.on(
+				this._chunkBox,
+				"click",
+				function () {
+					this._openPanel("chunk")
+				},
+				this
+			)
+			L.DomEvent.on(
+				this._tileBox,
+				"click",
+				function () {
+					this._openPanel("tile")
+				},
+				this
+			)
 			L.DomEvent.on(goBtn, "click", this._onGo, this)
 			L.DomEvent.on(this._input, "keydown", function (e) {
 				if (e.key === "Enter") {
@@ -95,25 +110,53 @@ import "../leaflet.js"
 			return this._container
 		},
 
-		_togglePanel: function () {
-			this._panelOpen = !this._panelOpen
-			if (this._panelOpen) {
-				L.DomUtil.addClass(this._panel, "visible")
-				this._input.focus()
-			} else {
+		_openPanel: function (mode) {
+			if (this._panelOpen && this._panelMode === mode) {
+				this._panelOpen = false
+				this._panelMode = null
 				L.DomUtil.removeClass(this._panel, "visible")
+				return
 			}
+			this._panelOpen = true
+			this._panelMode = mode
+			if (mode === "chunk") {
+				this._label.textContent = "Go to chunk:"
+				this._input.placeholder = "chunkX, chunkY"
+			} else {
+				this._label.textContent = "Go to tile:"
+				this._input.placeholder = "x, y"
+			}
+			this._input.value = ""
+			L.DomUtil.addClass(this._panel, "visible")
+			this._input.focus()
 		},
 
 		_onGo: function () {
 			var input = this._input.value
 			if (input) {
-				var destination = this.interpret(input)
+				var numbers = input.match(/\d+/g)
+				if (!numbers || numbers.length < 2) return
+				var nums = numbers.map(Number)
+				var destination
+				if (this._panelMode === "chunk") {
+					destination = {
+						plane: this._map.getPlane(),
+						globalX: nums[0] * 64 + 32,
+						globalY: nums[1] * 64 + 32
+					}
+				} else {
+					destination = {
+						plane: this._map.getPlane(),
+						globalX: nums[0],
+						globalY: nums[1]
+					}
+				}
 				if (this.validateCoordinate(destination)) {
 					this.panMap(destination)
 					this.placeCrosshair(destination)
 					this._input.value = ""
 					this._panelOpen = false
+					this._panelMode = null
 					L.DomUtil.removeClass(this._panel, "visible")
 				} else {
 					console.error(
