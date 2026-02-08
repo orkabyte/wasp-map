@@ -170,6 +170,7 @@ import "../leaflet.js"
 			var dropdown = L.DomUtil.create("div", "leaflet-control-location-search-dropdown", container)
 			var activeIndex = -1
 			var currentItems = []
+			var currentResults = []
 			var debounceTimer = null
 			var locationsPromise = fetchLocations(this.options.dataUrl)
 
@@ -205,6 +206,7 @@ import "../leaflet.js"
 				locationsPromise.then(function (locations) {
 					dropdown.innerHTML = ""
 					currentItems = []
+					currentResults = []
 					activeIndex = -1
 
 					if (!query) {
@@ -225,16 +227,16 @@ import "../leaflet.js"
 						}
 					}
 
-					var results = prefix.concat(substring).slice(0, 50)
+					currentResults = prefix.concat(substring).slice(0, 50)
 
-					if (results.length === 0) {
+					if (currentResults.length === 0) {
 						hideDropdown()
 						return
 					}
 
-					for (var j = 0; j < results.length; j++) {
+					for (var j = 0; j < currentResults.length; j++) {
 						var item = L.DomUtil.create("div", "leaflet-control-location-search-item", dropdown)
-						item.textContent = results[j].name
+						item.textContent = currentResults[j].name
 						item.setAttribute("data-index", j)
 						;(function (loc) {
 							L.DomEvent.on(item, "mousedown", function (e) {
@@ -243,7 +245,7 @@ import "../leaflet.js"
 							L.DomEvent.on(item, "click", function () {
 								selectItem(loc)
 							})
-						})(results[j])
+						})(currentResults[j])
 						currentItems.push(item)
 					}
 
@@ -259,6 +261,32 @@ import "../leaflet.js"
 			})
 
 			L.DomEvent.on(inputElement, "keydown", function (e) {
+				if (e.key === "Enter") {
+					e.preventDefault()
+					if (!L.DomUtil.hasClass(dropdown, "visible")) {
+						if (debounceTimer) clearTimeout(debounceTimer)
+						debounceTimer = null
+						updateResults(inputElement.value.trim())
+						locationsPromise.then(function () {
+							if (currentResults.length > 0) {
+								selectItem(currentResults[0])
+							}
+						})
+					} else {
+						var idx = activeIndex >= 0 ? activeIndex : 0
+						if (currentResults[idx]) {
+							selectItem(currentResults[idx])
+						}
+					}
+					return
+				}
+
+				if (e.key === "Escape") {
+					hideDropdown()
+					inputElement.blur()
+					return
+				}
+
 				if (!L.DomUtil.hasClass(dropdown, "visible")) return
 
 				if (e.key === "ArrowDown") {
@@ -267,28 +295,6 @@ import "../leaflet.js"
 				} else if (e.key === "ArrowUp") {
 					e.preventDefault()
 					setActive(Math.max(activeIndex - 1, 0))
-				} else if (e.key === "Enter" && activeIndex >= 0) {
-					e.preventDefault()
-					var idx = parseInt(currentItems[activeIndex].getAttribute("data-index"), 10)
-					locationsPromise.then(function (locations) {
-						var lower = inputElement.value.trim().toLowerCase()
-						var prefix = []
-						var substr = []
-						for (var i = 0; i < locations.length; i++) {
-							var nameLower = locations[i].name.toLowerCase()
-							if (nameLower.indexOf(lower) === 0) {
-								prefix.push(locations[i])
-							} else if (nameLower.indexOf(lower) > 0) {
-								substr.push(locations[i])
-							}
-						}
-						var results = prefix.concat(substr)
-						if (results[idx]) {
-							selectItem(results[idx])
-						}
-					})
-				} else if (e.key === "Escape") {
-					hideDropdown()
 				}
 			})
 
@@ -297,6 +303,7 @@ import "../leaflet.js"
 			})
 
 			L.DomEvent.on(inputElement, "focus", function () {
+				inputElement.select()
 				if (inputElement.value.trim()) {
 					showDropdown()
 				}
