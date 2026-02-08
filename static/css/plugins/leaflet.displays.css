@@ -200,7 +200,7 @@ textarea {
 .leaflet-control-display-form-rect .leaflet-control-display-label,
 .leaflet-control-display-form-rect .leaflet-control-display-input-number {
 	grid-column: auto;
-	min-width: 70px;
+	min-width: 85px;
 }
 
 .leaflet-control-map-row {
