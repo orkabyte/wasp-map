@@ -75,6 +75,20 @@ void (function (global) {
 	L.control.position().addTo(runescape_map)
 	L.control.fullscreen().addTo(runescape_map)
 
+	L.Control.Credits = L.Control.extend({
+		options: { position: "bottomleft" },
+		onAdd: function () {
+			let container = L.DomUtil.create("div", "leaflet-control-credits")
+			container.innerHTML = "Credits to Torwent"
+			L.DomEvent.disableClickPropagation(container)
+			return container
+		}
+	})
+	L.control.credits = function (opts) {
+		return new L.Control.Credits(opts)
+	}
+	L.control.credits().addTo(runescape_map)
+
 	L.tileLayer
 		.main("layers-osrs/map/{zoom}/{plane}/{x}-{y}.png", {
 			minZoom: -4,

@@ -262,3 +262,12 @@ textarea {
 .leaflet-control-display-input-copy-btn:hover {
 	color: #e0e0e8;
 }
+
+.leaflet-control-credits {
+	background: #1e1e2e;
+	border: 1px solid #3a3a4e;
+	color: #cdd6f4;
+	padding: 4px 8px;
+	font-size: 11px;
+	border-radius: 4px;
+}
