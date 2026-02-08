@@ -151,7 +151,7 @@ export default void function (factory) {
                 history.replaceState(0, "Location", url);
             },
 
-            attachAutocomplete: function (inputElement, dataUrl) {
+            attachAutocomplete: function (inputElement, dataUrl, onEnterSelect) {
                 var wrapper = L.DomUtil.create("div", "leaflet-control-display-autocomplete-wrapper")
                 inputElement.parentNode.insertBefore(wrapper, inputElement)
                 wrapper.appendChild(inputElement)
@@ -247,19 +247,34 @@ export default void function (factory) {
                 })
 
                 L.DomEvent.on(inputElement, "keydown", function (e) {
-                    if (!L.DomUtil.hasClass(dropdown, "visible")) return
-
                     if (e.key === "ArrowDown") {
+                        if (!L.DomUtil.hasClass(dropdown, "visible")) return
                         e.preventDefault()
                         setActive(Math.min(activeIndex + 1, currentItems.length - 1))
                     } else if (e.key === "ArrowUp") {
+                        if (!L.DomUtil.hasClass(dropdown, "visible")) return
                         e.preventDefault()
                         setActive(Math.max(activeIndex - 1, 0))
-                    } else if (e.key === "Enter" && activeIndex >= 0) {
-                        e.preventDefault()
-                        selectItem(currentItems[activeIndex].getAttribute("data-name"))
                     } else if (e.key === "Escape") {
                         hideDropdown()
+                    } else if (e.key === "Enter") {
+                        e.preventDefault()
+                        if (L.DomUtil.hasClass(dropdown, "visible") && currentItems.length > 0) {
+                            var pick = activeIndex >= 0 ? activeIndex : 0
+                            selectItem(currentItems[pick].getAttribute("data-name"))
+                            if (onEnterSelect) onEnterSelect()
+                        } else {
+                            if (debounceTimer) clearTimeout(debounceTimer)
+                            var query = inputElement.value.trim()
+                            if (!query) return
+                            updateResults(query)
+                            namesPromise.then(function () {
+                                if (currentItems.length > 0) {
+                                    selectItem(currentItems[0].getAttribute("data-name"))
+                                    if (onEnterSelect) onEnterSelect()
+                                }
+                            })
+                        }
                     }
                 })
 
@@ -310,7 +325,9 @@ export default void function (factory) {
                 nameInput.setAttribute('value', objectName);
                 nameInput.setAttribute('autocomplete', 'off');
 
-                this.attachAutocomplete(nameInput, this.options.folder + "/object_name_collection.json")
+                this.attachAutocomplete(nameInput, this.options.folder + "/object_name_collection.json", function () {
+                    objectForm.requestSubmit()
+                })
 
                 let idDescription = L.DomUtil.create('label', 'leaflet-control-display-label', objectForm);
                 idDescription.innerHTML = "Id";
@@ -412,7 +429,9 @@ export default void function (factory) {
                 nameInput.setAttribute('value', npcName);
                 nameInput.setAttribute('autocomplete', 'off');
 
-                this.attachAutocomplete(nameInput, this.options.folder + "/npc_name_collection.json")
+                this.attachAutocomplete(nameInput, this.options.folder + "/npc_name_collection.json", function () {
+                    npcForm.requestSubmit()
+                })
 
                 let idDescription = L.DomUtil.create('label', 'leaflet-control-display-label', npcForm);
                 idDescription.innerHTML = "Id";
