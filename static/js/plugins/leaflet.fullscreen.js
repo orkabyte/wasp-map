@@ -112,10 +112,6 @@ import "../leaflet.js";
         fullscreenControl: false
     });
     L.Map.addInitHook(function() {
-        if (this.options.fullscreenControl) {
-            this.fullscreenControl = new L.Control.Fullscreen(this.options.fullscreenControl);
-            this.addControl(this.fullscreenControl)
-        }
         var fullscreenchange;
         if ("onfullscreenchange" in document) {
             fullscreenchange = "fullscreenchange"
