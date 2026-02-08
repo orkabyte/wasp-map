@@ -336,6 +336,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .leaflet-control-layers-toggle {
 	background-position: 50% 50%;
 	background-repeat: no-repeat;
+	display: block;
 	}
 .leaflet-bar a:hover {
 	background-color: #2a2a3c;
@@ -393,10 +394,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
 	background-image: url(../images/layers.png);
 	width: 36px;
 	height: 36px;
+	filter: invert(1) brightness(2);
 	}
 .leaflet-retina .leaflet-control-layers-toggle {
 	background-image: url(../images/layers-2x.png);
 	background-size: 26px 26px;
+	filter: invert(1) brightness(2);
 	}
 .leaflet-touch .leaflet-control-layers-toggle {
 	width: 44px;
