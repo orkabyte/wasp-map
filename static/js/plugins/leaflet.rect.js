@@ -123,6 +123,27 @@ export default void (function (factory) {
 		return new L.DraggableSquare(bounds, options)
 	}
 
+	function wrapWithCopyBtn(input) {
+		let wrapper = L.DomUtil.create("div", "leaflet-control-display-input-copy-wrapper")
+		input.parentNode.insertBefore(wrapper, input)
+		wrapper.appendChild(input)
+		input.style.paddingRight = "24px"
+		input.style.width = "100%"
+		input.style.boxSizing = "border-box"
+
+		let btn = L.DomUtil.create("button", "leaflet-control-display-input-copy-btn", wrapper)
+		btn.setAttribute("type", "button")
+		btn.innerHTML =
+			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+
+		L.DomEvent.on(btn, "click", function (e) {
+			L.DomEvent.stopPropagation(e)
+			navigator.clipboard.writeText(input.value)
+		})
+
+		return wrapper
+	}
+
 	L.Control.Display.Rect = L.Control.Display.extend({
 		onAdd: function (map) {
 			this.rect = L.draggableSquare(
@@ -188,6 +209,7 @@ export default void (function (factory) {
 			this.y2 = L.DomUtil.create("input", "leaflet-control-display-input-number", rectForm)
 			this.y2.setAttribute("type", "number")
 			this.y2.setAttribute("name", "y2")
+			;[this.width, this.height, this.x1, this.y1, this.x2, this.y2].forEach(wrapWithCopyBtn)
 
 			let simba1400Row = L.DomUtil.create("div", "leaflet-control-map-row", rectForm)
 			let simba1400 = L.DomUtil.create("label", "leaflet-control-display-label", simba1400Row)
