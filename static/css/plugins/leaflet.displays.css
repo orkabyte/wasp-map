@@ -67,7 +67,9 @@
 	padding: 6px 10px;
 	font-size: 13px;
 	outline: none;
-	transition: background-color 0.15s, border-color 0.15s;
+	transition:
+		background-color 0.15s,
+		border-color 0.15s;
 	min-width: 160px;
 }
 
@@ -107,7 +109,9 @@
 	padding: 6px 10px;
 	font-size: 13px;
 	outline: none;
-	transition: background-color 0.15s, border-color 0.15s;
+	transition:
+		background-color 0.15s,
+		border-color 0.15s;
 }
 
 .leaflet-control-map-input:focus {
@@ -187,4 +191,31 @@ textarea {
 .leaflet-control-display-label-icon svg {
 	width: 18px;
 	height: 18px;
+}
+
+.leaflet-control-display-form-rect {
+	grid-template-columns: auto 1fr auto 1fr;
+}
+
+.leaflet-control-display-form-rect .leaflet-control-display-label,
+.leaflet-control-display-form-rect .leaflet-control-display-input-number {
+	grid-column: auto;
+	min-width: 70px;
+}
+
+.leaflet-control-map-row {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.leaflet-control-map-row .leaflet-control-display-label {
+	grid-column: unset;
+	flex-shrink: 0;
+}
+
+.leaflet-control-map-row .leaflet-control-map-input {
+	flex: 1;
+	min-width: 0;
 }

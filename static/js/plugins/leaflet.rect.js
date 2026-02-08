@@ -147,7 +147,11 @@ export default void (function (factory) {
 
 		createInterface: function () {
 			let container = L.DomUtil.create("div", "leaflet-control-display-expanded")
-			let rectForm = L.DomUtil.create("form", "leaflet-control-display-form", container)
+			let rectForm = L.DomUtil.create(
+				"form",
+				"leaflet-control-display-form leaflet-control-display-form-rect",
+				container
+			)
 
 			let widthLabel = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
 			widthLabel.innerHTML = "Width"
@@ -167,17 +171,17 @@ export default void (function (factory) {
 			this.x1.setAttribute("type", "number")
 			this.x1.setAttribute("name", "x1")
 
-			let x2Label = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
-			x2Label.innerHTML = "X2"
-			this.x2 = L.DomUtil.create("input", "leaflet-control-display-input-number", rectForm)
-			this.x2.setAttribute("type", "number")
-			this.x2.setAttribute("name", "x2")
-
 			let y1Label = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
 			y1Label.innerHTML = "Y1"
 			this.y1 = L.DomUtil.create("input", "leaflet-control-display-input-number", rectForm)
 			this.y1.setAttribute("type", "number")
 			this.y1.setAttribute("name", "y1")
+
+			let x2Label = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
+			x2Label.innerHTML = "X2"
+			this.x2 = L.DomUtil.create("input", "leaflet-control-display-input-number", rectForm)
+			this.x2.setAttribute("type", "number")
+			this.x2.setAttribute("name", "x2")
 
 			let y2Label = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
 			y2Label.innerHTML = "Y2"
@@ -185,16 +189,18 @@ export default void (function (factory) {
 			this.y2.setAttribute("type", "number")
 			this.y2.setAttribute("name", "y2")
 
-			let simba1400 = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
+			let simba1400Row = L.DomUtil.create("div", "leaflet-control-map-row", rectForm)
+			let simba1400 = L.DomUtil.create("label", "leaflet-control-display-label", simba1400Row)
 			simba1400.innerHTML = "Simba1400"
-			this.map1400 = L.DomUtil.create("input", "leaflet-control-map-input", rectForm)
+			this.map1400 = L.DomUtil.create("input", "leaflet-control-map-input", simba1400Row)
 			this.map1400.setAttribute("type", "text")
 			this.map1400.setAttribute("name", "map1400")
 			this.map1400.setAttribute("readOnly", true)
 
-			let simba2000 = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
+			let simba2000Row = L.DomUtil.create("div", "leaflet-control-map-row", rectForm)
+			let simba2000 = L.DomUtil.create("label", "leaflet-control-display-label", simba2000Row)
 			simba2000.innerHTML = "Simba2000"
-			this.map2000 = L.DomUtil.create("input", "leaflet-control-map-input", rectForm)
+			this.map2000 = L.DomUtil.create("input", "leaflet-control-map-input", simba2000Row)
 			this.map2000.setAttribute("type", "text")
 			this.map2000.setAttribute("name", "map2000")
 			this.map2000.setAttribute("readOnly", true)
@@ -204,14 +210,19 @@ export default void (function (factory) {
 			return container
 		},
 
-		changeRect: function (e) {
-			let [width, height, _, x1, x2, y1, y2] = Array.from(e.srcElement.parentElement.children)
-				.filter((elem) => elem.nodeName == "INPUT")
-				.map((elem) => elem.value)
-			if (["width", "height"].includes(e.srcElement.name)) {
-				x2 = Number(x1) + Number(width)
-				y1 = Number(y2) + Number(height)
+		changeRect: function () {
+			let width = Number(this.width.value)
+			let height = Number(this.height.value)
+			let x1 = Number(this.x1.value)
+			let x2 = Number(this.x2.value)
+			let y1 = Number(this.y1.value)
+			let y2 = Number(this.y2.value)
+
+			if (["width", "height"].includes(document.activeElement.name)) {
+				x2 = x1 + width
+				y1 = y2 + height
 			}
+
 			let bounds = L.latLngBounds([
 				[y2, x1],
 				[y1, x2]
@@ -270,5 +281,4 @@ export default void (function (factory) {
 	L.control.display.rect = function (options) {
 		return new L.Control.Display.Rect(options)
 	}
-
 })
