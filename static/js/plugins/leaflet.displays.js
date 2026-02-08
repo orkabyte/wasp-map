@@ -53,7 +53,11 @@ export default void function (factory) {
                 let expandedContentContainer = L.DomUtil.create('div', 'leaflet-control-display-container-expanded');
                 expandedContentContainer.appendChild(expandedContent)
 
+                let titleEl = L.DomUtil.create('div', 'leaflet-control-display-title');
+                titleEl.textContent = this.options.title;
+
                 this.expanded = L.DomUtil.create('div', "leaflet-control-display-panel");
+                this.expanded.appendChild(titleEl);
                 this.expanded.appendChild(expandedContentContainer);
                 this.expanded.style.display = 'none';
                 this._container.appendChild(this.expanded);
