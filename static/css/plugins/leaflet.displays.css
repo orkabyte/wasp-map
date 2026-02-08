@@ -219,3 +219,46 @@ textarea {
 	flex: 1;
 	min-width: 0;
 }
+
+.leaflet-control-display-form-rect .leaflet-control-display-input-number::-webkit-inner-spin-button,
+.leaflet-control-display-form-rect
+	.leaflet-control-display-input-number::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+.leaflet-control-display-form-rect .leaflet-control-display-input-number {
+	-moz-appearance: textfield;
+}
+
+.leaflet-control-display-input-copy-wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.leaflet-control-display-input-copy-btn {
+	position: absolute;
+	right: 4px;
+	top: 50%;
+	transform: translateY(-50%);
+	background: none;
+	border: none;
+	color: #9999aa;
+	cursor: pointer;
+	padding: 2px;
+	display: none;
+	line-height: 0;
+}
+
+.leaflet-control-display-input-copy-btn svg {
+	width: 14px;
+	height: 14px;
+}
+
+.leaflet-control-display-input-copy-wrapper:hover .leaflet-control-display-input-copy-btn {
+	display: block;
+}
+
+.leaflet-control-display-input-copy-btn:hover {
+	color: #e0e0e8;
+}
