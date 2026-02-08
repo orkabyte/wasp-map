@@ -101,7 +101,7 @@ import "./leaflet.js";
                 messageBox.appendChild(messageContent);
 
                 let clearButton = L.DomUtil.create("div", "leaflet-control-message-clear");
-                clearButton.innerHTML = "[dismiss]";
+                clearButton.innerHTML = "\u00d7";
                 clearButton.onclick = () => this._messageContainer.removeChild(messageBox);
                 messageBox.appendChild(clearButton);
 
