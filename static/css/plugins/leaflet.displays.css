@@ -263,6 +263,28 @@ textarea {
 	color: #e0e0e8;
 }
 
+.leaflet-draggable-rect {
+	cursor: move;
+}
+
+.leaflet-vertex-handle {
+	background: #3a3a5e;
+	border: 2px solid #4a4a6a;
+	border-radius: 50%;
+	transition:
+		background-color 0.15s,
+		border-color 0.15s;
+}
+
+.leaflet-vertex-handle:hover {
+	background: #4a4a6a;
+	border-color: #6a6a8a;
+}
+
+.leaflet-edge-handle {
+	cursor: ns-resize;
+}
+
 .leaflet-control-credits {
 	background: #1e1e2e;
 	border: 1px solid #3a3a4e;
