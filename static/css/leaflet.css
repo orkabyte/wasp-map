@@ -291,7 +291,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 /* visual tweaks */
 
 .leaflet-container {
-	background: #111;
+	background: black;
 	outline: 0;
 	}
 .leaflet-container a {
@@ -315,7 +315,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 /* general toolbar styles */
 
 .leaflet-bar {
-	box-shadow: 0 1px 5px rgba(0,0,0,0.5);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 	border-radius: 8px;
 	}
 .leaflet-bar a,
@@ -385,7 +385,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 /* layers control */
 
 .leaflet-control-layers {
-	box-shadow: 0 1px 5px rgba(0,0,0,0.5);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 	background: #1e1e2e;
 	border-radius: 8px;
 	}
@@ -469,7 +469,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 	margin-bottom: 5px;
 	}
 .leaflet-control-scale-line {
-	border: 2px solid #777;
+	border: 2px solid #3a3a4e;
 	border-top: none;
 	line-height: 1.1;
 	padding: 2px 5px 1px;
@@ -479,21 +479,18 @@ svg.leaflet-image-layer.leaflet-interactive path {
 	-moz-box-sizing: border-box;
 	     box-sizing: border-box;
 
-	background: #fff;
-	background: rgba(255, 255, 255, 0.5);
+	background: rgba(30, 30, 46, 0.7);
 	}
 .leaflet-control-scale-line:not(:first-child) {
-	border-top: 2px solid #777;
+	border-top: 2px solid #3a3a4e;
 	border-bottom: none;
 	margin-top: -2px;
 	}
 .leaflet-control-scale-line:not(:first-child):not(:last-child) {
-	border-bottom: 2px solid #777;
+	border-bottom: 2px solid #3a3a4e;
 	}
 
-.leaflet-touch .leaflet-control-attribution,
-.leaflet-touch .leaflet-control-layers,
-.leaflet-touch .leaflet-bar {
+.leaflet-touch .leaflet-control-attribution {
 	box-shadow: none;
 	}
 .leaflet-touch .leaflet-control-layers,
@@ -598,8 +595,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
 /* div icon */
 
 .leaflet-div-icon {
-	background: #fff;
-	border: 1px solid #666;
+	background: #1e1e2e;
+	border: 1px solid #3a3a4e;
 	}
 
 
@@ -610,7 +607,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 	padding: 6px;
 	background-color: #1e1e2e;
 	border: 1px solid #3a3a4e;
-	border-radius: 6px;
+	border-radius: 8px;
 	color: #e0e0e8;
 	white-space: nowrap;
 	-webkit-user-select: none;
