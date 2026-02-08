@@ -1,5 +1,4 @@
 import "../leaflet.js"
-
 ;(function (factory) {
 	var L
 	if (typeof define === "function" && define.amd) {
@@ -18,7 +17,9 @@ import "../leaflet.js"
 		this.on("click", (e) => {
 			let x = Math.floor(e.latlng.lng)
 			let y = Math.floor(e.latlng.lat)
-			let copystr = `[${x}, ${y}]`
+			let v2x = x * 4 - 4096
+			let v2y = 50430 - y * 4
+			let copystr = `[${v2x}, ${v2y}]`
 			navigator.clipboard.writeText(copystr).then(
 				() => this.addMessage(`Copied to clipboard: ${copystr}`),
 				() => console.error("Cannot copy text to clipboard")

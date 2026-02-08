@@ -33,22 +33,10 @@ import "../leaflet.js"
 			this._map = map
 			this._container = L.DomUtil.create("div", "leaflet-control-position")
 
-			this._chunkBox = L.DomUtil.create(
-				"div",
-				"leaflet-control-position-box",
-				this._container
-			)
-			this._tileBox = L.DomUtil.create(
-				"div",
-				"leaflet-control-position-box",
-				this._container
-			)
+			this._chunkBox = L.DomUtil.create("div", "leaflet-control-position-box", this._container)
+			this._tileBox = L.DomUtil.create("div", "leaflet-control-position-box", this._container)
 
-			this._panel = L.DomUtil.create(
-				"div",
-				"leaflet-control-position-panel",
-				this._container
-			)
+			this._panel = L.DomUtil.create("div", "leaflet-control-position-panel", this._container)
 			var form = L.DomUtil.create("div", "leaflet-control-position-form", this._panel)
 			this._label = L.DomUtil.create("span", "leaflet-control-position-label", form)
 			this._label.textContent = "Go to:"
@@ -93,11 +81,16 @@ import "../leaflet.js"
 				this
 			)
 			L.DomEvent.on(goBtn, "click", this._onGo, this)
-			L.DomEvent.on(this._input, "keydown", function (e) {
-				if (e.key === "Enter") {
-					this._onGo()
-				}
-			}, this)
+			L.DomEvent.on(
+				this._input,
+				"keydown",
+				function (e) {
+					if (e.key === "Enter") {
+						this._onGo()
+					}
+				},
+				this
+			)
 			L.DomUtil.disableTextSelection()
 
 			this._map.on("mousemove", this._updateContainerPointCache, this)
@@ -134,21 +127,24 @@ import "../leaflet.js"
 		_onGo: function () {
 			var input = this._input.value
 			if (input) {
-				var numbers = input.match(/\d+/g)
-				if (!numbers || numbers.length < 2) return
-				var nums = numbers.map(Number)
 				var destination
 				if (this._panelMode === "chunk") {
+					var numbers = input.match(/\d+/g)
+					if (!numbers || numbers.length < 2) return
+					var nums = numbers.map(Number)
 					destination = {
 						plane: this._map.getPlane(),
 						globalX: nums[0] * 64 + 32,
 						globalY: nums[1] * 64 + 32
 					}
 				} else {
+					var numbers = input.match(/-?\d+/g)
+					if (!numbers || numbers.length < 2) return
+					var nums = numbers.map(Number)
 					destination = {
 						plane: this._map.getPlane(),
-						globalX: nums[0],
-						globalY: nums[1]
+						globalX: (nums[0] + 4096) / 4,
+						globalY: (50430 - nums[1]) / 4
 					}
 				}
 				if (this.validateCoordinate(destination)) {
@@ -293,7 +289,9 @@ import "../leaflet.js"
 			let chunk = this.convert(this.globalX, this.globalY)
 
 			this._chunkBox.textContent = "Chunk(" + chunk.chunkX + ", " + chunk.chunkY + ")"
-			this._tileBox.textContent = "[" + this.globalX + ", " + this.globalY + "]"
+			let v2x = this.globalX * 4 - 4096
+			let v2y = 50430 - this.globalY * 4
+			this._tileBox.textContent = "[" + v2x + ", " + v2y + "]"
 
 			this._rect.setBounds([
 				[this.globalY, this.globalX],
