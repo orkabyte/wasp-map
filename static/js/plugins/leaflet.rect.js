@@ -327,10 +327,10 @@ export default void (function (factory) {
 				],
 				{
 					owner: this,
-					color: "#4a4a6a",
-					fillColor: "#3a3a5e",
+					color: "#00d4ff",
+					fillColor: "#00d4ff",
 					fillOpacity: 0.15,
-					weight: 2,
+					weight: 3,
 					className: "leaflet-draggable-rect",
 					bubblingMouseEvents: false
 				}
