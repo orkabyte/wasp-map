@@ -336,7 +336,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .leaflet-control-layers-toggle {
 	background-position: 50% 50%;
 	background-repeat: no-repeat;
-	display: block;
 	}
 .leaflet-bar a:hover {
 	background-color: #2a2a3c;
@@ -391,15 +390,15 @@ svg.leaflet-image-layer.leaflet-interactive path {
 	border-radius: 8px;
 	}
 .leaflet-control-layers-toggle {
-	background-image: url(../images/layers.png);
-	width: 36px;
-	height: 36px;
-	filter: invert(1) brightness(2);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e0e0e8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 2 7 12 12 22 7 12 2'/%3E%3Cpolyline points='2 17 12 22 22 17'/%3E%3Cpolyline points='2 12 12 17 22 12'/%3E%3C/svg%3E");
+	background-size: 20px 20px;
+	width: 34px;
+	height: 34px;
+	display: block;
 	}
 .leaflet-retina .leaflet-control-layers-toggle {
-	background-image: url(../images/layers-2x.png);
-	background-size: 26px 26px;
-	filter: invert(1) brightness(2);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e0e0e8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 2 7 12 12 22 7 12 2'/%3E%3Cpolyline points='2 17 12 22 22 17'/%3E%3Cpolyline points='2 12 12 17 22 12'/%3E%3C/svg%3E");
+	background-size: 20px 20px;
 	}
 .leaflet-touch .leaflet-control-layers-toggle {
 	width: 44px;
