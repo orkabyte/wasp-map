@@ -140,8 +140,8 @@ import "../leaflet.js"
 
 			var icon = L.divIcon({
 				className: "search-marker",
-				iconSize: [0, 0],
-				iconAnchor: [0, 0],
+				iconSize: [40, 40],
+				iconAnchor: [20, 20],
 				html: '<div class="search-marker-ring"></div><div class="search-marker-pulse"></div><div class="search-marker-dot"></div>'
 			})
 			this._marker = L.marker(L.latLng(loc.y + 0.5, loc.x + 0.5), {
