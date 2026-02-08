@@ -303,6 +303,134 @@ textarea {
 	cursor: ns-resize;
 }
 
+.leaflet-draggable-poly {
+	cursor: move;
+}
+
+.leaflet-control-display-mode-toggle {
+	display: flex;
+	justify-content: flex-end;
+	gap: 4px;
+	padding: 8px 16px 0;
+}
+
+.leaflet-control-display-mode-btn {
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	display: grid;
+	place-items: center;
+	background: #2a2a3c;
+	border: 1px solid #3a3a4e;
+	border-radius: 6px;
+	color: #9999aa;
+	cursor: pointer;
+	transition:
+		background-color 0.15s,
+		border-color 0.15s,
+		color 0.15s;
+}
+
+.leaflet-control-display-mode-btn svg {
+	width: 16px;
+	height: 16px;
+}
+
+.leaflet-control-display-mode-btn:hover {
+	background: #333348;
+	border-color: #4a4a6a;
+	color: #e0e0e8;
+}
+
+.leaflet-control-display-mode-btn-active {
+	background: #3a3a5e;
+	border-color: #00d4ff;
+	color: #00d4ff;
+}
+
+.leaflet-control-display-mode-btn-active:hover {
+	background: #4a4a6a;
+	border-color: #00d4ff;
+	color: #00d4ff;
+}
+
+.leaflet-control-display-form-poly {
+	padding: 12px 16px;
+}
+
+.leaflet-control-display-poly-vertices {
+	max-height: 200px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: 10px;
+}
+
+.leaflet-control-display-poly-vertex-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.leaflet-control-display-poly-vertex-row .leaflet-control-display-label {
+	grid-column: unset;
+	min-width: 28px;
+	text-align: right;
+	flex-shrink: 0;
+}
+
+.leaflet-control-display-poly-axis-label {
+	color: #9999aa;
+	font-size: 11px;
+	flex-shrink: 0;
+}
+
+.leaflet-control-display-poly-input {
+	width: 70px !important;
+	min-width: 70px !important;
+	flex: 1;
+}
+
+.leaflet-control-display-poly-coords {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start;
+	margin-bottom: 10px;
+}
+
+.leaflet-control-display-poly-coords .leaflet-control-display-label {
+	grid-column: unset;
+	flex-shrink: 0;
+	padding-top: 6px;
+}
+
+.leaflet-control-display-poly-coords textarea {
+	flex: 1;
+	min-width: 0;
+	font-family: monospace;
+	font-size: 11px;
+	resize: vertical;
+	cursor: pointer;
+}
+
+.leaflet-control-display-poly-coords textarea:hover {
+	border-color: #4a4a6a;
+}
+
+.leaflet-control-display-new-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	width: 100%;
+}
+
+.leaflet-control-display-new-btn svg {
+	width: 14px;
+	height: 14px;
+}
+
 .leaflet-control-credits {
 	background: #1e1e2e;
 	border: 1px solid #3a3a4e;

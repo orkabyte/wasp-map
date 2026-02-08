@@ -15,6 +15,65 @@ export default void (function (factory) {
 		factory(window.L)
 	}
 })(function (L) {
+	// --- Coordinate helpers ---
+	function mapToGame(latlng) {
+		return {
+			x: latlng.lng * 4 - 4096,
+			y: 60 - (latlng.lat * 4 - 50370)
+		}
+	}
+
+	function gameToMap(x, y) {
+		return L.latLng((50430 - y) / 4, (x + 4096) / 4)
+	}
+
+	function pointInPolygon(x, y, vertices) {
+		let inside = false
+		for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+			let xi = vertices[i].x,
+				yi = vertices[i].y
+			let xj = vertices[j].x,
+				yj = vertices[j].y
+			if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+				inside = !inside
+			}
+		}
+		return inside
+	}
+
+	function computeTilesInPolygon(gameVertices) {
+		let minX = Infinity,
+			maxX = -Infinity,
+			minY = Infinity,
+			maxY = -Infinity
+		for (let v of gameVertices) {
+			if (v.x < minX) minX = v.x
+			if (v.x > maxX) maxX = v.x
+			if (v.y < minY) minY = v.y
+			if (v.y > maxY) maxY = v.y
+		}
+		minX = Math.floor(minX)
+		maxX = Math.ceil(maxX)
+		minY = Math.floor(minY)
+		maxY = Math.ceil(maxY)
+
+		let area = (maxX - minX) * (maxY - minY)
+		if (area > 50000) {
+			return null
+		}
+
+		let tiles = []
+		for (let y = minY; y <= maxY; y++) {
+			for (let x = minX; x <= maxX; x++) {
+				if (pointInPolygon(x, y, gameVertices)) {
+					tiles.push([x, y])
+				}
+			}
+		}
+		return tiles
+	}
+
+	// --- Vertex and DraggableSquare (unchanged) ---
 	let VertexIcon = L.DivIcon.extend({
 		options: {
 			iconSize: new L.Point(14, 14),
@@ -100,7 +159,7 @@ export default void (function (factory) {
 
 			this.on("mousedown", this._onDragStart)
 
-			this.options.owner.update(this.getBounds())
+			this.options.owner.updateBox(this.getBounds())
 		},
 
 		createVertex: function (latlng, cursor) {
@@ -176,7 +235,7 @@ export default void (function (factory) {
 			let newBounds = L.latLngBounds(this.vertices.map((v) => v.getLatLng()))
 			this.setRectBounds(newBounds)
 			this._updateEdges()
-			this.options.owner.update(newBounds)
+			this.options.owner.updateBox(newBounds)
 		},
 
 		_onEdgeDragEnd: function () {
@@ -221,7 +280,7 @@ export default void (function (factory) {
 			let newBounds = L.latLngBounds(this.vertices.map((v) => v.getLatLng()))
 			this.setRectBounds(newBounds)
 			this._updateEdges()
-			this.options.owner.update(newBounds)
+			this.options.owner.updateBox(newBounds)
 		},
 
 		_onDragEnd: function () {
@@ -254,7 +313,7 @@ export default void (function (factory) {
 			otherVertices[1].setLatLng(newLatLng2)
 
 			this._updateEdges()
-			this.options.owner.update(newBounds)
+			this.options.owner.updateBox(newBounds)
 		},
 
 		setRectBounds: function (bounds) {
@@ -287,10 +346,108 @@ export default void (function (factory) {
 		return new L.DraggableSquare(bounds, options)
 	}
 
+	// --- L.DraggablePolygon ---
+	L.DraggablePolygon = L.Polygon.extend({
+		initialize: function (latlngs, options) {
+			this.vertices = latlngs.map((ll) => new Vertex(ll, this, "move"))
+			this._dragging = false
+			return L.Polygon.prototype.initialize.call(this, latlngs, options)
+		},
+
+		onAdd: function (map) {
+			this.vertices.forEach((v) => v.trunc().addTo(map))
+			L.Polygon.prototype.onAdd.call(this, map)
+
+			this._onDragStart = this._onDragStart.bind(this)
+			this._onDragMove = this._onDragMove.bind(this)
+			this._onDragEnd = this._onDragEnd.bind(this)
+
+			this.on("mousedown", this._onDragStart)
+
+			this.options.owner.updatePoly()
+			return this
+		},
+
+		update: function () {
+			let latlngs = this.vertices.map((v) => v.getLatLng())
+			this.setLatLngs(latlngs)
+			this.options.owner.updatePoly()
+		},
+
+		getVertexLatLngs: function () {
+			return this.vertices.map((v) => v.getLatLng())
+		},
+
+		setVertices: function (latlngs) {
+			if (this._map) {
+				this.vertices.forEach((v) => v.remove())
+			}
+			this.vertices = latlngs.map((ll) => new Vertex(ll, this, "move"))
+			if (this._map) {
+				this.vertices.forEach((v) => v.trunc().addTo(this._map))
+			}
+			this.setLatLngs(latlngs)
+		},
+
+		_onDragStart: function (e) {
+			L.DomEvent.stopPropagation(e.originalEvent)
+			L.DomEvent.preventDefault(e.originalEvent)
+			this._dragging = true
+			this._dragStartLatLng = this._map.mouseEventToLatLng(e.originalEvent)
+			this._map.dragging.disable()
+
+			this._map.on("mousemove", this._onDragMove)
+			this._map.on("mouseup", this._onDragEnd)
+			L.DomEvent.on(document, "mouseup", this._onDragEnd)
+		},
+
+		_onDragMove: function (e) {
+			if (!this._dragging) return
+			let current = e.latlng
+			let dLat = Math.trunc(current.lat) - Math.trunc(this._dragStartLatLng.lat)
+			let dLng = Math.trunc(current.lng) - Math.trunc(this._dragStartLatLng.lng)
+			if (dLat === 0 && dLng === 0) return
+
+			this._dragStartLatLng = current
+
+			this.vertices.forEach((v) => {
+				let pos = v.getLatLng()
+				v.setLatLng(L.latLng(Math.trunc(pos.lat + dLat), Math.trunc(pos.lng + dLng)))
+			})
+
+			this.setLatLngs(this.vertices.map((v) => v.getLatLng()))
+			this.options.owner.updatePoly()
+		},
+
+		_onDragEnd: function () {
+			if (!this._dragging) return
+			this._dragging = false
+			this._map.dragging.enable()
+
+			this._map.off("mousemove", this._onDragMove)
+			this._map.off("mouseup", this._onDragEnd)
+			L.DomEvent.off(document, "mouseup", this._onDragEnd)
+		},
+
+		remove: function () {
+			if (this._dragging) this._onDragEnd()
+			this.vertices.forEach((v) => v.remove())
+			return L.Polygon.prototype.remove.call(this)
+		}
+	})
+
+	// --- SVG icons ---
 	let copySvg =
 		'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
 	let checkSvg =
 		'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+
+	let boxIconSvg =
+		'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="12" height="12" rx="1"/></svg>'
+	let polyIconSvg =
+		'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="9,2 15,6 14,13 4,13 3,6"/></svg>'
+	let newIconSvg =
+		'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="9" y1="3" x2="9" y2="15"/><line x1="3" y1="9" x2="15" y2="9"/></svg>'
 
 	function wrapWithCopyBtn(input, map) {
 		let wrapper = L.DomUtil.create("div", "leaflet-control-display-input-copy-wrapper")
@@ -320,6 +477,9 @@ export default void (function (factory) {
 
 	L.Control.Display.Rect = L.Control.Display.extend({
 		onAdd: function (map) {
+			this._mode = "box"
+			this._drawState = null
+
 			this.rect = L.draggableSquare(
 				[
 					[3232, 3200],
@@ -336,65 +496,108 @@ export default void (function (factory) {
 				}
 			)
 
+			this.poly = null
+			this._polyLatlngs = null
+
 			return L.Control.Display.prototype.onAdd.call(this, map)
 		},
 
 		options: {
 			position: "topleft",
-			title: "Dimensions:",
+			title: "Dimensions",
 			label: "MAP",
 			icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4l5-2 6 2 5-2v12l-5 2-6-2-5 2z"/><path d="M6 2v12m6-10v12"/></svg>'
 		},
 
 		createInterface: function () {
 			let container = L.DomUtil.create("div", "leaflet-control-display-expanded")
-			let rectForm = L.DomUtil.create(
+
+			// --- Mode toggle ---
+			let toggle = L.DomUtil.create("div", "leaflet-control-display-mode-toggle", container)
+
+			this._boxBtn = L.DomUtil.create(
+				"button",
+				"leaflet-control-display-mode-btn leaflet-control-display-mode-btn-active",
+				toggle
+			)
+			this._boxBtn.setAttribute("type", "button")
+			this._boxBtn.setAttribute("title", "Box mode")
+			this._boxBtn.innerHTML = boxIconSvg
+
+			this._polyBtn = L.DomUtil.create("button", "leaflet-control-display-mode-btn", toggle)
+			this._polyBtn.setAttribute("type", "button")
+			this._polyBtn.setAttribute("title", "Polygon mode")
+			this._polyBtn.innerHTML = polyIconSvg
+
+			L.DomEvent.on(
+				this._boxBtn,
+				"click",
+				function (e) {
+					L.DomEvent.stopPropagation(e)
+					this._switchMode("box")
+				},
+				this
+			)
+
+			L.DomEvent.on(
+				this._polyBtn,
+				"click",
+				function (e) {
+					L.DomEvent.stopPropagation(e)
+					this._switchMode("poly")
+				},
+				this
+			)
+
+			// --- Box card ---
+			this._boxCard = L.DomUtil.create(
 				"form",
 				"leaflet-control-display-form leaflet-control-display-form-rect",
 				container
 			)
 
-			let widthLabel = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
+			let widthLabel = L.DomUtil.create("label", "leaflet-control-display-label", this._boxCard)
 			widthLabel.innerHTML = "Width"
-			this.width = L.DomUtil.create("input", "leaflet-control-display-input-number", rectForm)
+			this.width = L.DomUtil.create("input", "leaflet-control-display-input-number", this._boxCard)
 			this.width.setAttribute("type", "number")
 			this.width.setAttribute("name", "width")
 
-			let heightLabel = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
+			let heightLabel = L.DomUtil.create("label", "leaflet-control-display-label", this._boxCard)
 			heightLabel.innerHTML = "Height"
-			this.height = L.DomUtil.create("input", "leaflet-control-display-input-number", rectForm)
+			this.height = L.DomUtil.create("input", "leaflet-control-display-input-number", this._boxCard)
 			this.height.setAttribute("type", "number")
 			this.height.setAttribute("name", "height")
 
-			let x1Label = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
+			let x1Label = L.DomUtil.create("label", "leaflet-control-display-label", this._boxCard)
 			x1Label.innerHTML = "X1"
-			this.x1 = L.DomUtil.create("input", "leaflet-control-display-input-number", rectForm)
+			this.x1 = L.DomUtil.create("input", "leaflet-control-display-input-number", this._boxCard)
 			this.x1.setAttribute("type", "number")
 			this.x1.setAttribute("name", "x1")
 
-			let y1Label = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
+			let y1Label = L.DomUtil.create("label", "leaflet-control-display-label", this._boxCard)
 			y1Label.innerHTML = "Y1"
-			this.y1 = L.DomUtil.create("input", "leaflet-control-display-input-number", rectForm)
+			this.y1 = L.DomUtil.create("input", "leaflet-control-display-input-number", this._boxCard)
 			this.y1.setAttribute("type", "number")
 			this.y1.setAttribute("name", "y1")
 
-			let x2Label = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
+			let x2Label = L.DomUtil.create("label", "leaflet-control-display-label", this._boxCard)
 			x2Label.innerHTML = "X2"
-			this.x2 = L.DomUtil.create("input", "leaflet-control-display-input-number", rectForm)
+			this.x2 = L.DomUtil.create("input", "leaflet-control-display-input-number", this._boxCard)
 			this.x2.setAttribute("type", "number")
 			this.x2.setAttribute("name", "x2")
 
-			let y2Label = L.DomUtil.create("label", "leaflet-control-display-label", rectForm)
+			let y2Label = L.DomUtil.create("label", "leaflet-control-display-label", this._boxCard)
 			y2Label.innerHTML = "Y2"
-			this.y2 = L.DomUtil.create("input", "leaflet-control-display-input-number", rectForm)
+			this.y2 = L.DomUtil.create("input", "leaflet-control-display-input-number", this._boxCard)
 			this.y2.setAttribute("type", "number")
 			this.y2.setAttribute("name", "y2")
+
 			let map = this._map
 			;[this.width, this.height, this.x1, this.y1, this.x2, this.y2].forEach(function (input) {
 				wrapWithCopyBtn(input, map)
 			})
 
-			let simba1400Row = L.DomUtil.create("div", "leaflet-control-map-row", rectForm)
+			let simba1400Row = L.DomUtil.create("div", "leaflet-control-map-row", this._boxCard)
 			let simba1400 = L.DomUtil.create("label", "leaflet-control-display-label", simba1400Row)
 			simba1400.innerHTML = "Simba1400"
 			this.map1400 = L.DomUtil.create("input", "leaflet-control-map-input", simba1400Row)
@@ -402,7 +605,7 @@ export default void (function (factory) {
 			this.map1400.setAttribute("name", "map1400")
 			this.map1400.setAttribute("readOnly", true)
 
-			let simba2000Row = L.DomUtil.create("div", "leaflet-control-map-row", rectForm)
+			let simba2000Row = L.DomUtil.create("div", "leaflet-control-map-row", this._boxCard)
 			let simba2000 = L.DomUtil.create("label", "leaflet-control-display-label", simba2000Row)
 			simba2000.innerHTML = "Simba2000"
 			this.map2000 = L.DomUtil.create("input", "leaflet-control-map-input", simba2000Row)
@@ -410,9 +613,144 @@ export default void (function (factory) {
 			this.map2000.setAttribute("name", "map2000")
 			this.map2000.setAttribute("readOnly", true)
 
-			rectForm.addEventListener("change", this.changeRect.bind(this))
+			// Box New button
+			this._boxNewBtn = L.DomUtil.create(
+				"button",
+				"leaflet-control-display-submit leaflet-control-display-new-btn",
+				this._boxCard
+			)
+			this._boxNewBtn.setAttribute("type", "button")
+			this._boxNewBtn.innerHTML = newIconSvg + " New"
+
+			L.DomEvent.on(
+				this._boxNewBtn,
+				"click",
+				function (e) {
+					L.DomEvent.stopPropagation(e)
+					this._handleNewBox()
+				},
+				this
+			)
+
+			this._boxCard.addEventListener("change", this.changeRect.bind(this))
+
+			// --- Poly card ---
+			this._polyCard = L.DomUtil.create("div", "leaflet-control-display-form-poly", container)
+			this._polyCard.style.display = "none"
+
+			this._polyVertexList = L.DomUtil.create(
+				"div",
+				"leaflet-control-display-poly-vertices",
+				this._polyCard
+			)
+
+			let coordsRow = L.DomUtil.create("div", "leaflet-control-display-poly-coords", this._polyCard)
+			let coordsLabel = L.DomUtil.create("label", "leaflet-control-display-label", coordsRow)
+			coordsLabel.innerHTML = "Coords"
+			this._polyCoords = L.DomUtil.create("textarea", "", coordsRow)
+			this._polyCoords.setAttribute("readOnly", true)
+			this._polyCoords.setAttribute("rows", "3")
+
+			L.DomEvent.on(
+				this._polyCoords,
+				"click",
+				function (e) {
+					L.DomEvent.stopPropagation(e)
+					let text = this._polyCoords.value
+					if (text) {
+						navigator.clipboard.writeText(text).then(() => {
+							this._map.addMessage("Copied polygon coordinates to clipboard")
+						})
+					}
+				},
+				this
+			)
+
+			// Poly New button
+			this._polyNewBtn = L.DomUtil.create(
+				"button",
+				"leaflet-control-display-submit leaflet-control-display-new-btn",
+				this._polyCard
+			)
+			this._polyNewBtn.setAttribute("type", "button")
+			this._polyNewBtn.innerHTML = newIconSvg + " New"
+
+			L.DomEvent.on(
+				this._polyNewBtn,
+				"click",
+				function (e) {
+					L.DomEvent.stopPropagation(e)
+					this._handleNewPoly()
+				},
+				this
+			)
 
 			return container
+		},
+
+		_switchMode: function (mode) {
+			if (mode === this._mode) return
+			this._cancelDrawing()
+
+			this._mode = mode
+
+			if (mode === "box") {
+				L.DomUtil.addClass(this._boxBtn, "leaflet-control-display-mode-btn-active")
+				L.DomUtil.removeClass(this._polyBtn, "leaflet-control-display-mode-btn-active")
+				this._boxCard.style.display = ""
+				this._polyCard.style.display = "none"
+
+				if (this.poly && this._map) {
+					this._polyLatlngs = this.poly.getVertexLatLngs()
+					this.poly.remove()
+				}
+
+				if (this._expanded) {
+					let bounds = this._map.getBounds().pad(-0.3)
+					this.rect.setBounds(bounds)
+					this.rect.addTo(this._map)
+				}
+			} else {
+				L.DomUtil.removeClass(this._boxBtn, "leaflet-control-display-mode-btn-active")
+				L.DomUtil.addClass(this._polyBtn, "leaflet-control-display-mode-btn-active")
+				this._boxCard.style.display = "none"
+				this._polyCard.style.display = ""
+
+				if (this.rect._map) {
+					this.rect.remove()
+				}
+
+				if (this._expanded) {
+					let latlngs = this._polyLatlngs || this._defaultPentagon()
+					this.poly = new L.DraggablePolygon(latlngs, {
+						owner: this,
+						color: "#00d4ff",
+						fillColor: "#00d4ff",
+						fillOpacity: 0.15,
+						weight: 3,
+						className: "leaflet-draggable-poly",
+						bubblingMouseEvents: false
+					})
+					this.poly.addTo(this._map)
+				}
+			}
+		},
+
+		_defaultPentagon: function () {
+			let center = this._map.getCenter()
+			let zoom = this._map.getZoom()
+			let r = Math.max(8, 80 / Math.pow(2, zoom - 2))
+			let pts = []
+			for (let i = 0; i < 5; i++) {
+				let angle = Math.PI / 2 + (2 * Math.PI * i) / 5
+				pts.push(
+					L.latLng(
+						Math.trunc(center.lat + r * Math.sin(angle)),
+						Math.trunc(center.lng + r * Math.cos(angle))
+					)
+				)
+			}
+			return pts
 		},
 
 		changeRect: function () {
@@ -433,11 +771,10 @@ export default void (function (factory) {
 				[y1, x2]
 			])
 			this.rect.setBounds(bounds)
-			this.update(bounds)
+			this.updateBox(bounds)
 		},
 
-		update: function (bounds) {
-			// update control content
+		updateBox: function (bounds) {
 			let chunk = {
 				x1: bounds.getWest() >> 6,
 				y1: bounds.getNorth() >> 6,
@@ -470,17 +807,331 @@ export default void (function (factory) {
 			}), ${this._map.getPlane()})]);`
 		},
 
+		update: function (boundsOrVertex) {
+			if (this._mode === "box") {
+				this.updateBox(boundsOrVertex)
+			}
+		},
+
+		updatePoly: function () {
+			if (!this.poly) return
+
+			let latlngs = this.poly.getVertexLatLngs()
+			let gameCoords = latlngs.map((ll) => mapToGame(ll))
+
+			this._updateVertexList(gameCoords)
+
+			let tiles = computeTilesInPolygon(gameCoords)
+			if (tiles === null) {
+				this._polyCoords.value = "Area too large (>50,000 tiles)"
+			} else {
+				this._polyCoords.value = JSON.stringify(tiles)
+			}
+		},
+
+		_updateVertexList: function (gameCoords) {
+			this._polyVertexList.innerHTML = ""
+
+			gameCoords.forEach((coord, i) => {
+				let row = L.DomUtil.create(
+					"div",
+					"leaflet-control-display-poly-vertex-row",
+					this._polyVertexList
+				)
+
+				let label = L.DomUtil.create("label", "leaflet-control-display-label", row)
+				label.textContent = "P" + (i + 1)
+
+				let xLabel = L.DomUtil.create("span", "leaflet-control-display-poly-axis-label", row)
+				xLabel.textContent = "X"
+
+				let xInput = L.DomUtil.create(
+					"input",
+					"leaflet-control-display-input-number leaflet-control-display-poly-input",
+					row
+				)
+				xInput.setAttribute("type", "number")
+				xInput.value = Math.round(coord.x)
+				xInput.dataset.index = i
+				xInput.dataset.axis = "x"
+
+				let yLabel = L.DomUtil.create("span", "leaflet-control-display-poly-axis-label", row)
+				yLabel.textContent = "Y"
+
+				let yInput = L.DomUtil.create(
+					"input",
+					"leaflet-control-display-input-number leaflet-control-display-poly-input",
+					row
+				)
+				yInput.setAttribute("type", "number")
+				yInput.value = Math.round(coord.y)
+				yInput.dataset.index = i
+				yInput.dataset.axis = "y"
+
+				L.DomEvent.on(xInput, "change", this._onVertexInputChange, this)
+				L.DomEvent.on(yInput, "change", this._onVertexInputChange, this)
+			})
+		},
+
+		_onVertexInputChange: function (e) {
+			let input = e.target
+			let idx = Number(input.dataset.index)
+			if (!this.poly || idx >= this.poly.vertices.length) return
+
+			let latlngs = this.poly.getVertexLatLngs()
+			let game = mapToGame(latlngs[idx])
+
+			if (input.dataset.axis === "x") {
+				game.x = Number(input.value)
+			} else {
+				game.y = Number(input.value)
+			}
+
+			let newLatLng = gameToMap(game.x, game.y)
+			this.poly.vertices[idx].setLatLng(newLatLng).trunc()
+			this.poly.setLatLngs(this.poly.vertices.map((v) => v.getLatLng()))
+			this.updatePoly()
+		},
+
+		// --- Drawing state machine ---
+		_handleNewBox: function () {
+			if (this._drawState === "box_first" || this._drawState === "box_second") {
+				this._cancelDrawing()
+				return
+			}
+			this._cancelDrawing()
+
+			if (this.rect._map) this.rect.remove()
+			this._drawState = "box_first"
+			this._map.getContainer().style.cursor = "crosshair"
+			this._boxNewBtn.innerHTML = newIconSvg + " Cancel"
+
+			this._drawMapClick = this._onDrawMapClick.bind(this)
+			this._drawMapMove = this._onDrawMapMove.bind(this)
+			this._map.on("click", this._drawMapClick)
+		},
+
+		_handleNewPoly: function () {
+			if (this._drawState === "poly_first" || this._drawState === "poly_drawing") {
+				this._cancelDrawing()
+				return
+			}
+			this._cancelDrawing()
+
+			if (this.poly) {
+				this._polyLatlngs = this.poly.getVertexLatLngs()
+				this.poly.remove()
+				this.poly = null
+			}
+			this._drawState = "poly_first"
+			this._drawPoints = []
+			this._map.getContainer().style.cursor = "crosshair"
+			this._polyNewBtn.innerHTML = newIconSvg + " Cancel"
+
+			this._previewLine = L.polyline([], {
+				color: "#00d4ff",
+				weight: 2,
+				dashArray: "6,4",
+				bubblingMouseEvents: false
+			}).addTo(this._map)
+
+			this._closeIndicator = null
+
+			this._drawMapClick = this._onDrawMapClick.bind(this)
+			this._drawMapMove = this._onDrawMapMove.bind(this)
+			this._map.on("click", this._drawMapClick)
+			this._map.on("mousemove", this._drawMapMove)
+		},
+
+		_onDrawMapClick: function (e) {
+			let latlng = L.latLng(Math.trunc(e.latlng.lat), Math.trunc(e.latlng.lng))
+
+			if (this._drawState === "box_first") {
+				this._drawCorner1 = latlng
+				this._drawRect = L.rectangle([latlng, latlng], {
+					color: "#00d4ff",
+					fillColor: "#00d4ff",
+					fillOpacity: 0.15,
+					weight: 3,
+					dashArray: "6,4"
+				}).addTo(this._map)
+				this._drawState = "box_second"
+				this._map.on("mousemove", this._drawMapMove)
+			} else if (this._drawState === "box_second") {
+				this._map.off("mousemove", this._drawMapMove)
+				this._map.off("click", this._drawMapClick)
+				if (this._drawRect) {
+					this._drawRect.remove()
+					this._drawRect = null
+				}
+				this._map.getContainer().style.cursor = ""
+				this._boxNewBtn.innerHTML = newIconSvg + " New"
+
+				let bounds = L.latLngBounds([this._drawCorner1, latlng])
+				this.rect.setBounds(bounds)
+				this.rect.addTo(this._map)
+				this._drawState = null
+			} else if (this._drawState === "poly_first") {
+				this._drawPoints.push(latlng)
+				this._drawState = "poly_drawing"
+			} else if (this._drawState === "poly_drawing") {
+				// Check if closing
+				if (this._drawPoints.length >= 3) {
+					let startPt = this._map.latLngToLayerPoint(this._drawPoints[0])
+					let clickPt = this._map.latLngToLayerPoint(latlng)
+					let dist = startPt.distanceTo(clickPt)
+					if (dist <= 10) {
+						this._finishPolyDrawing()
+						return
+					}
+				}
+				this._drawPoints.push(latlng)
+				this._updateCloseIndicator()
+			}
+		},
+
+		_onDrawMapMove: function (e) {
+			let latlng = L.latLng(Math.trunc(e.latlng.lat), Math.trunc(e.latlng.lng))
+
+			if (this._drawState === "box_second" && this._drawRect) {
+				this._drawRect.setBounds(L.latLngBounds([this._drawCorner1, latlng]))
+			} else if (this._drawState === "poly_first" || this._drawState === "poly_drawing") {
+				let pts = this._drawPoints.concat([latlng])
+				if (this._previewLine) {
+					this._previewLine.setLatLngs(pts)
+				}
+			}
+		},
+
+		_updateCloseIndicator: function () {
+			if (this._closeIndicator) {
+				this._closeIndicator.remove()
+				this._closeIndicator = null
+			}
+			if (this._drawPoints.length >= 3) {
+				this._closeIndicator = L.circleMarker(this._drawPoints[0], {
+					radius: 8,
+					color: "#00d4ff",
+					fillColor: "#00d4ff",
+					fillOpacity: 0.3,
+					weight: 2,
+					bubblingMouseEvents: false
+				}).addTo(this._map)
+			}
+		},
+
+		_finishPolyDrawing: function () {
+			this._map.off("click", this._drawMapClick)
+			this._map.off("mousemove", this._drawMapMove)
+			if (this._previewLine) {
+				this._previewLine.remove()
+				this._previewLine = null
+			}
+			if (this._closeIndicator) {
+				this._closeIndicator.remove()
+				this._closeIndicator = null
+			}
+			this._map.getContainer().style.cursor = ""
+			this._polyNewBtn.innerHTML = newIconSvg + " New"
+
+			this.poly = new L.DraggablePolygon(this._drawPoints, {
+				owner: this,
+				color: "#00d4ff",
+				fillColor: "#00d4ff",
+				fillOpacity: 0.15,
+				weight: 3,
+				className: "leaflet-draggable-poly",
+				bubblingMouseEvents: false
+			})
+			this.poly.addTo(this._map)
+			this._polyLatlngs = this._drawPoints.slice()
+			this._drawPoints = []
+			this._drawState = null
+		},
+
+		_cancelDrawing: function () {
+			if (!this._drawState) return
+
+			this._map.off("click", this._drawMapClick)
+			this._map.off("mousemove", this._drawMapMove)
+			this._map.getContainer().style.cursor = ""
+
+			if (this._drawRect) {
+				this._drawRect.remove()
+				this._drawRect = null
+			}
+			if (this._previewLine) {
+				this._previewLine.remove()
+				this._previewLine = null
+			}
+			if (this._closeIndicator) {
+				this._closeIndicator.remove()
+				this._closeIndicator = null
+			}
+
+			// Restore previous shape
+			if (this._drawState === "box_first" || this._drawState === "box_second") {
+				this._boxNewBtn.innerHTML = newIconSvg + " New"
+				let bounds = this._map.getBounds().pad(-0.3)
+				this.rect.setBounds(bounds)
+				this.rect.addTo(this._map)
+			} else if (this._drawState === "poly_first" || this._drawState === "poly_drawing") {
+				this._polyNewBtn.innerHTML = newIconSvg + " New"
+				if (this._polyLatlngs && this._polyLatlngs.length >= 3) {
+					this.poly = new L.DraggablePolygon(this._polyLatlngs, {
+						owner: this,
+						color: "#00d4ff",
+						fillColor: "#00d4ff",
+						fillOpacity: 0.15,
+						weight: 3,
+						className: "leaflet-draggable-poly",
+						bubblingMouseEvents: false
+					})
+					this.poly.addTo(this._map)
+				}
+			}
+
+			this._drawPoints = []
+			this._drawState = null
+		},
+
 		expand: function () {
 			this._map._clickCopyDisabled = true
-			let bounds = this._map.getBounds().pad(-0.3)
-			this.rect.setBounds(bounds)
-			this.rect.addTo(this._map)
+
+			if (this._mode === "box") {
+				let bounds = this._map.getBounds().pad(-0.3)
+				this.rect.setBounds(bounds)
+				this.rect.addTo(this._map)
+			} else {
+				let latlngs = this._polyLatlngs || this._defaultPentagon()
+				this.poly = new L.DraggablePolygon(latlngs, {
+					owner: this,
+					color: "#00d4ff",
+					fillColor: "#00d4ff",
+					fillOpacity: 0.15,
+					weight: 3,
+					className: "leaflet-draggable-poly",
+					bubblingMouseEvents: false
+				})
+				this.poly.addTo(this._map)
+			}
+
 			return L.Control.Display.prototype.expand.call(this)
 		},
 
 		collapse: function () {
 			this._map._clickCopyDisabled = false
-			this.rect.remove()
+			this._cancelDrawing()
+
+			if (this.rect._map) {
+				this.rect.remove()
+			}
+			if (this.poly) {
+				this._polyLatlngs = this.poly.getVertexLatLngs()
+				this.poly.remove()
+				this.poly = null
+			}
+
 			return L.Control.Display.prototype.collapse.call(this)
 		}
 	})
