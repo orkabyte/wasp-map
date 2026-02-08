@@ -304,6 +304,10 @@ import "../leaflet.js"
 
 			L.DomEvent.on(inputElement, "focus", function () {
 				inputElement.select()
+				L.DomEvent.on(inputElement, "mouseup", function handler(e) {
+					e.preventDefault()
+					L.DomEvent.off(inputElement, "mouseup", handler)
+				})
 				if (inputElement.value.trim()) {
 					showDropdown()
 				}
