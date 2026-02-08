@@ -1,6 +1,7 @@
 "use strict"
 import MD5 from "./MD5.js"
 import "./leaflet.js"
+import "./plugins/leaflet.markerIcon.js"
 
 ;(function (factory) {
 	var L
