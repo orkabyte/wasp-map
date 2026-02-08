@@ -2,7 +2,6 @@
 import MD5 from "./MD5.js"
 import "./leaflet.js"
 import "./plugins/leaflet.markerIcon.js"
-
 ;(function (factory) {
 	var L
 	if (typeof define === "function" && define.amd) {
@@ -565,7 +564,20 @@ import "./plugins/leaflet.markerIcon.js"
 									keys: this._heatData
 								})
 							})
-							.finally(this._map.addMessage(`Found ${npcs.length} instances of this npc`))
+							.finally(() => {
+								this._map.addMessage(`Found ${npcs.length} instances of this npc`)
+
+								if (npcs.length > 0) {
+									let bounds = L.latLngBounds(npcs.map((npc) => [npc.y + 0.5, npc.x + 0.5]))
+									let planes = {}
+									npcs.forEach((npc) => {
+										planes[npc.p] = (planes[npc.p] || 0) + 1
+									})
+									let mostCommonPlane = +Object.entries(planes).sort((a, b) => b[1] - a[1])[0][0]
+									this._map.setPlane(mostCommonPlane)
+									this._map.fitBounds(bounds, { maxZoom: 6, animate: false })
+								}
+							})
 					})
 					.catch((error) => {
 						console.log(error)

@@ -23,6 +23,24 @@ export default void (function (factory) {
 			if (this.options.names || this.options.ids) {
 				this.getData(this.options.names, this.options.ids)
 					.then((locations) => {
+						if (locations.length > 0) {
+							let bounds = L.latLngBounds(
+								locations.map((item) =>
+									"location" in item
+										? [item.location.y + 0.5, item.location.x + 0.5]
+										: [(item.j << 6) + item.y + 0.5, (item.i << 6) + item.x + 0.5]
+								)
+							)
+							let planes = {}
+							locations.forEach((item) => {
+								let p = "location" in item ? item.location.plane : item.plane
+								planes[p] = (planes[p] || 0) + 1
+							})
+							let mostCommonPlane = +Object.entries(planes).sort((a, b) => b[1] - a[1])[0][0]
+							this._map.setPlane(mostCommonPlane)
+							this._map.fitBounds(bounds, { maxZoom: 6, animate: false })
+						}
+
 						this._icon_data = this.parseData(locations)
 						this._icons = {}
 						this._resetView()
