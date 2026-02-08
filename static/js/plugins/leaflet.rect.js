@@ -471,6 +471,7 @@ export default void (function (factory) {
 		},
 
 		expand: function () {
+			this._map._clickCopyDisabled = true
 			let bounds = this._map.getBounds().pad(-0.3)
 			this.rect.setBounds(bounds)
 			this.rect.addTo(this._map)
@@ -478,6 +479,7 @@ export default void (function (factory) {
 		},
 
 		collapse: function () {
+			this._map._clickCopyDisabled = false
 			this.rect.remove()
 			return L.Control.Display.prototype.collapse.call(this)
 		}

@@ -15,6 +15,7 @@ import "../leaflet.js"
 })(function (L) {
 	L.Map.addInitHook(function () {
 		this.on("click", (e) => {
+			if (this._clickCopyDisabled) return
 			let x = Math.floor(e.latlng.lng)
 			let y = Math.floor(e.latlng.lat)
 			let v2x = x * 4 - 4096
