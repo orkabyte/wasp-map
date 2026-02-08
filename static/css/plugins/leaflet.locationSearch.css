@@ -79,29 +79,24 @@
 
 /* Search marker (pulsing dot + ring) */
 .search-marker {
-	width: 0 !important;
-	height: 0 !important;
+	overflow: visible !important;
 }
 
 .search-marker-ring {
 	position: absolute;
-	width: 40px;
-	height: 40px;
-	top: -20px;
-	left: -20px;
+	inset: 0;
 	border: 2px solid #64d2ff;
 	border-radius: 50%;
+	box-sizing: border-box;
 	animation: search-marker-entrance 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .search-marker-pulse {
 	position: absolute;
-	width: 40px;
-	height: 40px;
-	top: -20px;
-	left: -20px;
+	inset: 0;
 	border: 2px solid rgba(100, 210, 255, 0.6);
 	border-radius: 50%;
+	box-sizing: border-box;
 	animation: search-marker-pulse 2.2s ease-out 0.5s infinite;
 	opacity: 0;
 }
@@ -110,8 +105,9 @@
 	position: absolute;
 	width: 8px;
 	height: 8px;
-	top: -4px;
-	left: -4px;
+	top: 50%;
+	left: 50%;
+	margin: -4px 0 0 -4px;
 	background: #64d2ff;
 	border-radius: 50%;
 	box-shadow:
