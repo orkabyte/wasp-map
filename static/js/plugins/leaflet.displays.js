@@ -320,7 +320,7 @@ export default void function (factory) {
 
                 let container = L.DomUtil.create('div', 'leaflet-control-display-expanded');
 
-                let objectForm = L.DomUtil.create('form', 'leaflet-control-display-form', container);
+                let objectForm = L.DomUtil.create('form', 'leaflet-control-display-form leaflet-control-display-form-search', container);
 
                 let nameDescription = L.DomUtil.create('label', 'leaflet-control-display-label', objectForm);
                 nameDescription.innerHTML = "Name";
@@ -341,9 +341,15 @@ export default void function (factory) {
                 idInput.setAttribute('value', objectId);
                 idInput.setAttribute('autocomplete', 'off');
 
+                let spacerLabel = L.DomUtil.create("label", "leaflet-control-display-label", objectForm)
+                spacerLabel.innerHTML = "&nbsp;"
+                spacerLabel.style.visibility = "hidden"
+                let spacerInput = L.DomUtil.create("div", "leaflet-control-display-input", objectForm)
+                spacerInput.style.visibility = "hidden"
+
                 let submitButton = L.DomUtil.create('input', 'leaflet-control-display-submit', objectForm);
                 submitButton.setAttribute('type', 'submit');
-                submitButton.setAttribute('value', 'Look up');
+                submitButton.setAttribute('value', 'Show on map');
 
                 objectForm.addEventListener('submit', (e) => {
                     // on form submission, prevent default
@@ -424,7 +430,7 @@ export default void function (factory) {
 
                 let container = L.DomUtil.create('div', 'leaflet-control-display-expanded');
 
-                let npcForm = L.DomUtil.create('form', 'leaflet-control-display-form', container);
+                let npcForm = L.DomUtil.create('form', 'leaflet-control-display-form leaflet-control-display-form-search', container);
 
                 let nameDescription = L.DomUtil.create('label', 'leaflet-control-display-label', npcForm);
                 nameDescription.innerHTML = "Name";
@@ -454,7 +460,7 @@ export default void function (factory) {
 
                 let submitButton = L.DomUtil.create('input', 'leaflet-control-display-submit', npcForm);
                 submitButton.setAttribute('type', 'submit');
-                submitButton.setAttribute('value', 'Look up');
+                submitButton.setAttribute('value', 'Show on map');
 
                 npcForm.addEventListener('submit', (e) => {
                     // on form submission, prevent default
@@ -582,7 +588,7 @@ export default void function (factory) {
 
                 let submitButton = L.DomUtil.create('input', 'leaflet-control-display-submit', varForm);
                 submitButton.setAttribute('type', 'submit');
-                submitButton.setAttribute('value', 'Look up');
+                submitButton.setAttribute('value', 'Show on map');
 
                 varForm.addEventListener('submit', (e) => {
                     // on form submission, prevent default
