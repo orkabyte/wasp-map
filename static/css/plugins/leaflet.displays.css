@@ -179,4 +179,12 @@ textarea {
 	font-size: 13px;
 	font-weight: 600;
 	user-select: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.leaflet-control-display-label-icon svg {
+	width: 18px;
+	height: 18px;
 }

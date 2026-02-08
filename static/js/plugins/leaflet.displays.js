@@ -121,7 +121,11 @@ export default void function (factory) {
             createIcon: function (label) {
                 let container = L.DomUtil.create('div', "leaflet-control-display-collapsed");
                 let span = L.DomUtil.create('span', "leaflet-control-display-label-icon", container);
-                span.textContent = label;
+                if (this.options.icon) {
+                    span.innerHTML = this.options.icon;
+                } else {
+                    span.textContent = label;
+                }
                 return container;
             },
 
@@ -284,6 +288,7 @@ export default void function (factory) {
                 position: 'topleft',
                 title: 'Display objects',
                 label: 'OBJ',
+                icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 1L2 5v8l7 4 7-4V5z"/><path d="M2 5l7 4m0 0l7-4M9 9v8"/></svg>',
             },
 
             onAdd: function (map) {
@@ -381,6 +386,7 @@ export default void function (factory) {
                 position: 'topleft',
                 title: 'Display NPCs',
                 label: 'NPC',
+                icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="3"/><path d="M3 17c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>',
             },
             onAdd: function (map) {
                 return L.Control.Display.prototype.onAdd.call(this, map);

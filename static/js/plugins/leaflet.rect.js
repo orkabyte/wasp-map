@@ -141,7 +141,8 @@ export default void (function (factory) {
 		options: {
 			position: "topleft",
 			title: "Dimensions:",
-			label: "MAP"
+			label: "MAP",
+			icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4l5-2 6 2 5-2v12l-5 2-6-2-5 2z"/><path d="M6 2v12m6-10v12"/></svg>'
 		},
 
 		createInterface: function () {
