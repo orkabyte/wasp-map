@@ -141,19 +141,26 @@ import "../leaflet.js"
 		},
 
 		placeCrosshair: function (destination) {
-			let icon = L.icon({
-				iconUrl: "sprites/22449-0.png",
-				iconAnchor: [25, 25]
+			let icon = L.divIcon({
+				className: "search-marker",
+				iconSize: [0, 0],
+				iconAnchor: [0, 0],
+				html: '<div class="search-marker-ring"></div><div class="search-marker-pulse"></div><div class="search-marker-dot"></div>'
 			})
 			let marker = L.marker(L.latLng(destination.globalY + 0.5, destination.globalX + 0.5), {
-				icon: icon
+				icon: icon,
+				interactive: false
 			})
 			marker.addTo(this._map)
 			setTimeout(() => {
 				if (marker) {
-					marker.remove()
+					let el = marker.getElement()
+					if (el) L.DomUtil.addClass(el, "search-marker-removing")
+					setTimeout(() => {
+						if (marker) marker.remove()
+					}, 1000)
 				}
-			}, 50000)
+			}, 49000)
 		},
 
 		validateCoordinate: function (destination) {

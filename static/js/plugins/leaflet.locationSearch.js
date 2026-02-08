@@ -129,23 +129,40 @@ import "../leaflet.js"
 		_placeCrosshair: function (loc) {
 			if (this._marker) {
 				this._marker.remove()
+				this._marker = null
 			}
-			var icon = L.icon({
-				iconUrl: "sprites/22449-0.png",
-				iconAnchor: [25, 25]
+			if (this._markerFadeTimer) {
+				clearTimeout(this._markerFadeTimer)
+			}
+			if (this._markerRemoveTimer) {
+				clearTimeout(this._markerRemoveTimer)
+			}
+
+			var icon = L.divIcon({
+				className: "search-marker",
+				iconSize: [0, 0],
+				iconAnchor: [0, 0],
+				html: '<div class="search-marker-ring"></div><div class="search-marker-pulse"></div><div class="search-marker-dot"></div>'
 			})
 			this._marker = L.marker(L.latLng(loc.y + 0.5, loc.x + 0.5), {
-				icon: icon
+				icon: icon,
+				interactive: false
 			})
 			this._marker.addTo(this._map)
 
 			var self = this
-			setTimeout(function () {
+			this._markerFadeTimer = setTimeout(function () {
 				if (self._marker) {
-					self._marker.remove()
-					self._marker = null
+					var el = self._marker.getElement()
+					if (el) L.DomUtil.addClass(el, "search-marker-removing")
 				}
-			}, this.options.markerTimeout)
+				self._markerRemoveTimer = setTimeout(function () {
+					if (self._marker) {
+						self._marker.remove()
+						self._marker = null
+					}
+				}, 1000)
+			}, this.options.markerTimeout - 1000)
 		},
 
 		_attachAutocomplete: function (container, inputElement) {
