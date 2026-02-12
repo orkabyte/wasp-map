@@ -237,6 +237,11 @@ textarea {
 	min-width: 0;
 }
 
+.leaflet-control-map-row .leaflet-control-display-input-copy-wrapper {
+	flex: 1;
+	min-width: 0;
+}
+
 .leaflet-control-display-form-rect .leaflet-control-display-input-number::-webkit-inner-spin-button,
 .leaflet-control-display-form-rect
 	.leaflet-control-display-input-number::-webkit-outer-spin-button {
