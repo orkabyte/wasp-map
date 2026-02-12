@@ -252,6 +252,10 @@ textarea {
 	-moz-appearance: textfield;
 }
 
+.leaflet-control-display-form-rect .leaflet-control-display-coords-row {
+	grid-column: 1 / -1;
+}
+
 .leaflet-control-display-input-copy-wrapper {
 	position: relative;
 	display: flex;
@@ -368,49 +372,52 @@ textarea {
 	overflow-y: auto;
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: 8px;
 	margin-bottom: 10px;
 }
 
 .leaflet-control-display-poly-vertex-row {
-	display: flex;
+	display: grid;
+	grid-template-columns: auto 1fr auto 1fr;
+	gap: 8px;
 	align-items: center;
-	gap: 6px;
 }
 
 .leaflet-control-display-poly-vertex-row .leaflet-control-display-label {
-	grid-column: unset;
-	min-width: 28px;
+	min-width: 50px;
 	text-align: right;
-	flex-shrink: 0;
 }
 
-.leaflet-control-display-poly-axis-label {
-	color: #9999aa;
-	font-size: 11px;
-	flex-shrink: 0;
+.leaflet-control-display-poly-vertex-row .leaflet-control-display-input-number {
+	grid-column: auto;
+	min-width: 0;
 }
 
-.leaflet-control-display-poly-input {
-	width: 70px !important;
-	min-width: 70px !important;
-	flex: 1;
+.leaflet-control-display-poly-vertex-row
+	.leaflet-control-display-input-number::-webkit-inner-spin-button,
+.leaflet-control-display-poly-vertex-row
+	.leaflet-control-display-input-number::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+.leaflet-control-display-poly-vertex-row .leaflet-control-display-input-number {
+	-moz-appearance: textfield;
 }
 
-.leaflet-control-display-poly-coords {
+.leaflet-control-display-coords-row {
 	display: flex;
 	gap: 8px;
 	align-items: flex-start;
 	margin-bottom: 10px;
 }
 
-.leaflet-control-display-poly-coords .leaflet-control-display-label {
+.leaflet-control-display-coords-row .leaflet-control-display-label {
 	grid-column: unset;
 	flex-shrink: 0;
 	padding-top: 6px;
 }
 
-.leaflet-control-display-poly-coords textarea {
+.leaflet-control-display-coords-row textarea {
 	flex: 1;
 	min-width: 0;
 	font-family: monospace;
@@ -419,7 +426,7 @@ textarea {
 	cursor: pointer;
 }
 
-.leaflet-control-display-poly-coords textarea:hover {
+.leaflet-control-display-coords-row textarea:hover {
 	border-color: #4a4a6a;
 }
 
