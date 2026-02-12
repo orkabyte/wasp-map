@@ -480,15 +480,12 @@ export default void (function (factory) {
 			this.edges = []
 			for (let i = 0; i < this.vertices.length; i++) {
 				let j = (i + 1) % this.vertices.length
-				let line = L.polyline(
-					[this.vertices[i].getLatLng(), this.vertices[j].getLatLng()],
-					{
-						weight: 12,
-						opacity: 0,
-						bubblingMouseEvents: false,
-						className: "leaflet-edge-handle"
-					}
-				)
+				let line = L.polyline([this.vertices[i].getLatLng(), this.vertices[j].getLatLng()], {
+					weight: 12,
+					opacity: 0,
+					bubblingMouseEvents: false,
+					className: "leaflet-edge-handle"
+				})
 				line._edgeIndex = i
 				line.addTo(map)
 				line.getElement().style.cursor = "crosshair"
@@ -642,13 +639,42 @@ export default void (function (factory) {
 
 		options: {
 			position: "topleft",
-			title: "Dimensions",
+			title: "Chunk",
 			label: "MAP",
 			icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4l5-2 6 2 5-2v12l-5 2-6-2-5 2z"/><path d="M6 2v12m6-10v12"/></svg>'
 		},
 
 		createInterface: function () {
-			let container = L.DomUtil.create("div", "leaflet-control-display-expanded")
+			let container = L.DomUtil.create(
+				"div",
+				"leaflet-control-display-expanded leaflet-control-display-expanded-rect"
+			)
+			let map = this._map
+
+			// --- Chunk section (Simba fields) ---
+			let chunkSection = L.DomUtil.create("div", "leaflet-control-display-chunk-section", container)
+
+			let simba14Row = L.DomUtil.create("div", "leaflet-control-map-row", chunkSection)
+			let simba14Label = L.DomUtil.create("label", "leaflet-control-display-label", simba14Row)
+			simba14Label.innerHTML = "Simba 1.4"
+			this.map1400 = L.DomUtil.create("input", "leaflet-control-map-input", simba14Row)
+			this.map1400.setAttribute("type", "text")
+			this.map1400.setAttribute("name", "map1400")
+			this.map1400.setAttribute("readOnly", true)
+			wrapWithCopyBtn(this.map1400, map)
+
+			let simba20Row = L.DomUtil.create("div", "leaflet-control-map-row", chunkSection)
+			let simba20Label = L.DomUtil.create("label", "leaflet-control-display-label", simba20Row)
+			simba20Label.innerHTML = "Simba 2.0"
+			this.map2000 = L.DomUtil.create("input", "leaflet-control-map-input", simba20Row)
+			this.map2000.setAttribute("type", "text")
+			this.map2000.setAttribute("name", "map2000")
+			this.map2000.setAttribute("readOnly", true)
+			wrapWithCopyBtn(this.map2000, map)
+
+			// --- Area Selection header ---
+			let sectionTitle = L.DomUtil.create("div", "leaflet-control-display-section-title", container)
+			sectionTitle.textContent = "Area Selection"
 
 			// --- Mode toggle ---
 			let toggle = L.DomUtil.create("div", "leaflet-control-display-mode-toggle", container)
@@ -729,27 +755,9 @@ export default void (function (factory) {
 			this.y2 = L.DomUtil.create("input", "leaflet-control-display-input-number", this._boxCard)
 			this.y2.setAttribute("type", "number")
 			this.y2.setAttribute("name", "y2")
-
-			let map = this._map
 			;[this.width, this.height, this.x1, this.y1, this.x2, this.y2].forEach(function (input) {
 				wrapWithCopyBtn(input, map)
 			})
-
-			let simba1400Row = L.DomUtil.create("div", "leaflet-control-map-row", this._boxCard)
-			let simba1400 = L.DomUtil.create("label", "leaflet-control-display-label", simba1400Row)
-			simba1400.innerHTML = "Simba1400"
-			this.map1400 = L.DomUtil.create("input", "leaflet-control-map-input", simba1400Row)
-			this.map1400.setAttribute("type", "text")
-			this.map1400.setAttribute("name", "map1400")
-			this.map1400.setAttribute("readOnly", true)
-
-			let simba2000Row = L.DomUtil.create("div", "leaflet-control-map-row", this._boxCard)
-			let simba2000 = L.DomUtil.create("label", "leaflet-control-display-label", simba2000Row)
-			simba2000.innerHTML = "Simba2000"
-			this.map2000 = L.DomUtil.create("input", "leaflet-control-map-input", simba2000Row)
-			this.map2000.setAttribute("type", "text")
-			this.map2000.setAttribute("name", "map2000")
-			this.map2000.setAttribute("readOnly", true)
 
 			// Box New button
 			this._boxNewBtn = L.DomUtil.create(
@@ -961,6 +969,27 @@ export default void (function (factory) {
 				this._polyCoords.value = JSON.stringify(tiles)
 				this._tileHighlight.setTiles(tiles)
 			}
+
+			// Compute bounding box chunk for Simba fields
+			let minX = Infinity,
+				maxX = -Infinity,
+				minY = Infinity,
+				maxY = -Infinity
+			for (let c of gameCoords) {
+				if (c.x < minX) minX = c.x
+				if (c.x > maxX) maxX = c.x
+				if (c.y < minY) minY = c.y
+				if (c.y > maxY) maxY = c.y
+			}
+			let chunk = {
+				x1: ((minX + 4096) / 4) >> 6,
+				y1: ((50430 - minY) / 4) >> 6,
+				x2: ((maxX + 4096) / 4) >> 6,
+				y2: ((50430 - maxY) / 4) >> 6
+			}
+			let plane = this._map.getPlane()
+			this.map1400.value = `Map.SetupChunk(Chunk([${chunk.x1},${chunk.y1},${chunk.x2},${chunk.y2}], ${plane}));`
+			this.map2000.value = `Map.Setup([Chunk(Box(${chunk.x1},${chunk.y1},${chunk.x2},${chunk.y2}), ${plane})]);`
 		},
 
 		_updateVertexList: function (gameCoords) {
