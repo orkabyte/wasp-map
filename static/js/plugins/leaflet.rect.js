@@ -840,6 +840,40 @@ export default void (function (factory) {
 				wrapWithCopyBtn(input, map)
 			})
 
+			let boxRow = L.DomUtil.create("div", "leaflet-control-display-coords-row", this._boxCard)
+			let boxRowLabel = L.DomUtil.create("label", "leaflet-control-display-label", boxRow)
+			boxRowLabel.innerHTML = "Box"
+			this._boxField = L.DomUtil.create("input", "leaflet-control-map-input", boxRow)
+			this._boxField.setAttribute("type", "text")
+			this._boxField.setAttribute("readOnly", true)
+			wrapWithCopyBtn(this._boxField, map)
+
+			let boxCoordsRow = L.DomUtil.create(
+				"div",
+				"leaflet-control-display-coords-row",
+				this._boxCard
+			)
+			let boxCoordsLabel = L.DomUtil.create("label", "leaflet-control-display-label", boxCoordsRow)
+			boxCoordsLabel.innerHTML = "Coords"
+			this._boxCoords = L.DomUtil.create("textarea", "", boxCoordsRow)
+			this._boxCoords.setAttribute("readOnly", true)
+			this._boxCoords.setAttribute("rows", "3")
+
+			L.DomEvent.on(
+				this._boxCoords,
+				"click",
+				function (e) {
+					L.DomEvent.stopPropagation(e)
+					let text = this._boxCoords.value
+					if (text) {
+						navigator.clipboard.writeText(text).then(() => {
+							this._map.addMessage("Copied box coordinates to clipboard")
+						})
+					}
+				},
+				this
+			)
+
 			// Box New button
 			this._boxNewBtn = L.DomUtil.create(
 				"button",
@@ -874,7 +908,7 @@ export default void (function (factory) {
 				this._polyCard
 			)
 
-			let coordsRow = L.DomUtil.create("div", "leaflet-control-display-poly-coords", this._polyCard)
+			let coordsRow = L.DomUtil.create("div", "leaflet-control-display-coords-row", this._polyCard)
 			let coordsLabel = L.DomUtil.create("label", "leaflet-control-display-label", coordsRow)
 			coordsLabel.innerHTML = "Coords"
 			this._polyCoords = L.DomUtil.create("textarea", "", coordsRow)
@@ -1022,6 +1056,7 @@ export default void (function (factory) {
 			this.x2.value = global.x2
 			this.y1.value = global.y1
 			this.y2.value = global.y2
+			this._boxField.value = `Box(${global.x1},${global.y1},${global.x2},${global.y2})`
 			this.map1400.value = `Map.SetupChunk(Chunk([${chunk.x1},${chunk.y1},${chunk.x2},${
 				chunk.y2
 			}], ${this._map.getPlane()}));`
@@ -1029,6 +1064,24 @@ export default void (function (factory) {
 			this.map2000.value = `Map.Setup([Chunk(Box(${chunk.x1},${chunk.y1},${chunk.x2},${
 				chunk.y2
 			}), ${this._map.getPlane()})]);`
+
+			let planeOffset = 13056 * this._map.getPlane()
+			let tMinX = Math.floor(global.x1 / 4) * 4
+			let tMaxX = Math.ceil(global.x2 / 4) * 4
+			let tMinY = Math.floor((global.y2 - 2) / 4) * 4 + 2
+			let tMaxY = Math.ceil((global.y1 - 2) / 4) * 4 + 2
+			let tileCount = ((tMaxX - tMinX) / 4) * ((tMaxY - tMinY) / 4)
+			if (tileCount > 50000) {
+				this._boxCoords.value = "Area too large (>50,000 tiles)"
+			} else {
+				let tiles = []
+				for (let y = tMinY; y < tMaxY; y += 4) {
+					for (let x = tMinX; x < tMaxX; x += 4) {
+						tiles.push([x + planeOffset, y])
+					}
+				}
+				this._boxCoords.value = JSON.stringify(tiles)
+			}
 		},
 
 		update: function (boundsOrVertex) {
@@ -1089,30 +1142,19 @@ export default void (function (factory) {
 					this._polyVertexList
 				)
 
-				let label = L.DomUtil.create("label", "leaflet-control-display-label", row)
-				label.textContent = "P" + (i + 1)
+				let xLabel = L.DomUtil.create("label", "leaflet-control-display-label", row)
+				xLabel.textContent = "P" + (i + 1) + " X"
 
-				let xLabel = L.DomUtil.create("span", "leaflet-control-display-poly-axis-label", row)
-				xLabel.textContent = "X"
-
-				let xInput = L.DomUtil.create(
-					"input",
-					"leaflet-control-display-input-number leaflet-control-display-poly-input",
-					row
-				)
+				let xInput = L.DomUtil.create("input", "leaflet-control-display-input-number", row)
 				xInput.setAttribute("type", "number")
 				xInput.value = Math.round(coord.x + planeOffset)
 				xInput.dataset.index = i
 				xInput.dataset.axis = "x"
 
-				let yLabel = L.DomUtil.create("span", "leaflet-control-display-poly-axis-label", row)
+				let yLabel = L.DomUtil.create("label", "leaflet-control-display-label", row)
 				yLabel.textContent = "Y"
 
-				let yInput = L.DomUtil.create(
-					"input",
-					"leaflet-control-display-input-number leaflet-control-display-poly-input",
-					row
-				)
+				let yInput = L.DomUtil.create("input", "leaflet-control-display-input-number", row)
 				yInput.setAttribute("type", "number")
 				yInput.value = Math.round(coord.y)
 				yInput.dataset.index = i
