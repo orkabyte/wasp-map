@@ -54,8 +54,8 @@ export default void (function (factory) {
 		}
 		minX = Math.floor(minX / 4) * 4
 		maxX = Math.ceil(maxX / 4) * 4
-		minY = Math.floor(minY / 4) * 4
-		maxY = Math.ceil(maxY / 4) * 4
+		minY = Math.floor((minY - 2) / 4) * 4 + 2
+		maxY = Math.ceil((maxY - 2) / 4) * 4 + 2
 
 		let tileCount = ((maxX - minX) / 4) * ((maxY - minY) / 4)
 		if (tileCount > 50000) {
@@ -66,17 +66,17 @@ export default void (function (factory) {
 		let border = []
 		for (let y = minY; y < maxY; y += 4) {
 			for (let x = minX; x < maxX; x += 4) {
-				let insideCount = 0
-				for (let dy = 0; dy < 4; dy++) {
-					for (let dx = 0; dx < 4; dx++) {
-						if (pointInPolygon(x + dx + 0.5, y + dy + 0.5, gameVertices)) {
-							insideCount++
+				let count = 0
+				for (let sy = 0; sy < 4; sy++) {
+					for (let sx = 0; sx < 4; sx++) {
+						if (pointInPolygon(x + sx + 0.5, y + sy + 0.5, gameVertices)) {
+							count++
 						}
 					}
 				}
-				if (insideCount === 16) {
+				if (count === 16) {
 					selected.push([x, y])
-				} else if (insideCount > 0) {
+				} else if (count > 0) {
 					border.push([x, y])
 				}
 			}
@@ -149,38 +149,28 @@ export default void (function (factory) {
 
 			let viewBounds = map.getBounds()
 
-			// Border tiles first (orange, semi-transparent)
-			ctx.fillStyle = "rgba(255, 120, 0, 0.15)"
-			for (let i = 0; i < this._border.length; i++) {
-				let gx = this._border[i][0]
-				let gy = this._border[i][1]
+			let sets = [
+				{ tiles: this._border, color: "rgba(255, 120, 0, 0.15)" },
+				{ tiles: this._selected, color: "rgba(0, 212, 255, 0.15)" }
+			]
 
-				let nw = gameToMap(gx, gy)
-				let se = gameToMap(gx + 4, gy + 4)
+			for (let s = 0; s < sets.length; s++) {
+				let tiles = sets[s].tiles
+				ctx.fillStyle = sets[s].color
+				for (let i = 0; i < tiles.length; i++) {
+					let gx = tiles[i][0]
+					let gy = tiles[i][1]
 
-				if (se.lng < viewBounds.getWest() || nw.lng > viewBounds.getEast()) continue
-				if (se.lat > viewBounds.getNorth() || nw.lat < viewBounds.getSouth()) continue
+					let nw = gameToMap(gx, gy)
+					let se = gameToMap(gx + 4, gy + 4)
 
-				let pNW = map.latLngToLayerPoint(nw)
-				let pSE = map.latLngToLayerPoint(se)
-				ctx.fillRect(pNW.x - topLeft.x, pNW.y - topLeft.y, pSE.x - pNW.x, pSE.y - pNW.y)
-			}
+					if (se.lng < viewBounds.getWest() || nw.lng > viewBounds.getEast()) continue
+					if (se.lat > viewBounds.getNorth() || nw.lat < viewBounds.getSouth()) continue
 
-			// Selected tiles second (cyan)
-			ctx.fillStyle = "rgba(0, 212, 255, 0.15)"
-			for (let i = 0; i < this._selected.length; i++) {
-				let gx = this._selected[i][0]
-				let gy = this._selected[i][1]
-
-				let nw = gameToMap(gx, gy)
-				let se = gameToMap(gx + 4, gy + 4)
-
-				if (se.lng < viewBounds.getWest() || nw.lng > viewBounds.getEast()) continue
-				if (se.lat > viewBounds.getNorth() || nw.lat < viewBounds.getSouth()) continue
-
-				let pNW = map.latLngToLayerPoint(nw)
-				let pSE = map.latLngToLayerPoint(se)
-				ctx.fillRect(pNW.x - topLeft.x, pNW.y - topLeft.y, pSE.x - pNW.x, pSE.y - pNW.y)
+					let pNW = map.latLngToLayerPoint(nw)
+					let pSE = map.latLngToLayerPoint(se)
+					ctx.fillRect(pNW.x - topLeft.x, pNW.y - topLeft.y, pSE.x - pNW.x, pSE.y - pNW.y)
+				}
 			}
 		}
 	})
@@ -1047,9 +1037,10 @@ export default void (function (factory) {
 				this._polyCoords.value = "Area too large (>50,000 tiles)"
 				this._tileHighlight.setTiles([], [])
 			} else {
-				let outputTiles = result.selected.map((t) => [t[0] + planeOffset, t[1]])
+				let { selected, border } = result
+				let outputTiles = selected.map((t) => [t[0] + planeOffset, t[1]])
 				this._polyCoords.value = JSON.stringify(outputTiles)
-				this._tileHighlight.setTiles(result.selected, result.border)
+				this._tileHighlight.setTiles(selected, border)
 			}
 
 			// Compute bounding box chunk for Simba fields
