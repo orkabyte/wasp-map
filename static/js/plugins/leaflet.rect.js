@@ -52,31 +52,43 @@ export default void (function (factory) {
 			if (v.y < minY) minY = v.y
 			if (v.y > maxY) maxY = v.y
 		}
-		minX = Math.floor(minX)
-		maxX = Math.ceil(maxX)
-		minY = Math.floor(minY)
-		maxY = Math.ceil(maxY)
+		minX = Math.floor(minX / 4) * 4
+		maxX = Math.ceil(maxX / 4) * 4
+		minY = Math.floor(minY / 4) * 4
+		maxY = Math.ceil(maxY / 4) * 4
 
-		let area = (maxX - minX) * (maxY - minY)
-		if (area > 50000) {
+		let tileCount = ((maxX - minX) / 4) * ((maxY - minY) / 4)
+		if (tileCount > 50000) {
 			return null
 		}
 
-		let tiles = []
-		for (let y = minY; y <= maxY; y++) {
-			for (let x = minX; x <= maxX; x++) {
-				if (pointInPolygon(x + 0.5, y + 0.5, gameVertices)) {
-					tiles.push([x, y])
+		let selected = []
+		let border = []
+		for (let y = minY; y < maxY; y += 4) {
+			for (let x = minX; x < maxX; x += 4) {
+				let insideCount = 0
+				for (let dy = 0; dy < 4; dy++) {
+					for (let dx = 0; dx < 4; dx++) {
+						if (pointInPolygon(x + dx + 0.5, y + dy + 0.5, gameVertices)) {
+							insideCount++
+						}
+					}
+				}
+				if (insideCount === 16) {
+					selected.push([x, y])
+				} else if (insideCount > 0) {
+					border.push([x, y])
 				}
 			}
 		}
-		return tiles
+		return { selected, border }
 	}
 
 	// --- TileHighlight canvas overlay ---
 	let TileHighlight = L.Layer.extend({
 		initialize: function () {
-			this._tiles = []
+			this._selected = []
+			this._border = []
 		},
 
 		onAdd: function (map) {
@@ -102,8 +114,9 @@ export default void (function (factory) {
 			return this
 		},
 
-		setTiles: function (tiles) {
-			this._tiles = tiles
+		setTiles: function (selected, border) {
+			this._selected = selected
+			this._border = border
 			if (this._map) this._redraw()
 		},
 
@@ -133,17 +146,34 @@ export default void (function (factory) {
 			let ctx = canvas.getContext("2d")
 			ctx.scale(dpr, dpr)
 			ctx.clearRect(0, 0, size.x, size.y)
-			ctx.fillStyle = "rgba(0, 212, 255, 0.15)"
 
 			let viewBounds = map.getBounds()
-			let tiles = this._tiles
 
-			for (let i = 0; i < tiles.length; i++) {
-				let gx = tiles[i][0]
-				let gy = tiles[i][1]
+			// Border tiles first (orange, semi-transparent)
+			ctx.fillStyle = "rgba(255, 120, 0, 0.15)"
+			for (let i = 0; i < this._border.length; i++) {
+				let gx = this._border[i][0]
+				let gy = this._border[i][1]
 
 				let nw = gameToMap(gx, gy)
-				let se = gameToMap(gx + 1, gy + 1)
+				let se = gameToMap(gx + 4, gy + 4)
+
+				if (se.lng < viewBounds.getWest() || nw.lng > viewBounds.getEast()) continue
+				if (se.lat > viewBounds.getNorth() || nw.lat < viewBounds.getSouth()) continue
+
+				let pNW = map.latLngToLayerPoint(nw)
+				let pSE = map.latLngToLayerPoint(se)
+				ctx.fillRect(pNW.x - topLeft.x, pNW.y - topLeft.y, pSE.x - pNW.x, pSE.y - pNW.y)
+			}
+
+			// Selected tiles second (cyan)
+			ctx.fillStyle = "rgba(0, 212, 255, 0.15)"
+			for (let i = 0; i < this._selected.length; i++) {
+				let gx = this._selected[i][0]
+				let gy = this._selected[i][1]
+
+				let nw = gameToMap(gx, gy)
+				let se = gameToMap(gx + 4, gy + 4)
 
 				if (se.lng < viewBounds.getWest() || nw.lng > viewBounds.getEast()) continue
 				if (se.lat > viewBounds.getNorth() || nw.lat < viewBounds.getSouth()) continue
@@ -1008,16 +1038,18 @@ export default void (function (factory) {
 
 			let latlngs = this.poly.getVertexLatLngs()
 			let gameCoords = latlngs.map((ll) => mapToGame(ll))
+			let planeOffset = 13056 * this._map.getPlane()
 
-			this._updateVertexList(gameCoords)
+			this._updateVertexList(gameCoords, planeOffset)
 
-			let tiles = computeTilesInPolygon(gameCoords)
-			if (tiles === null) {
+			let result = computeTilesInPolygon(gameCoords)
+			if (result === null) {
 				this._polyCoords.value = "Area too large (>50,000 tiles)"
-				this._tileHighlight.setTiles([])
+				this._tileHighlight.setTiles([], [])
 			} else {
-				this._polyCoords.value = JSON.stringify(tiles)
-				this._tileHighlight.setTiles(tiles)
+				let outputTiles = result.selected.map((t) => [t[0] + planeOffset, t[1]])
+				this._polyCoords.value = JSON.stringify(outputTiles)
+				this._tileHighlight.setTiles(result.selected, result.border)
 			}
 
 			// Compute bounding box chunk for Simba fields
@@ -1042,7 +1074,7 @@ export default void (function (factory) {
 			this.map2000.value = `Map.Setup([Chunk(Box(${chunk.x1},${chunk.y1},${chunk.x2},${chunk.y2}), ${plane})]);`
 		},
 
-		_updateVertexList: function (gameCoords) {
+		_updateVertexList: function (gameCoords, planeOffset) {
 			this._polyVertexList.innerHTML = ""
 
 			gameCoords.forEach((coord, i) => {
@@ -1064,7 +1096,7 @@ export default void (function (factory) {
 					row
 				)
 				xInput.setAttribute("type", "number")
-				xInput.value = Math.round(coord.x)
+				xInput.value = Math.round(coord.x + planeOffset)
 				xInput.dataset.index = i
 				xInput.dataset.axis = "x"
 
@@ -1093,9 +1125,10 @@ export default void (function (factory) {
 
 			let latlngs = this.poly.getVertexLatLngs()
 			let game = mapToGame(latlngs[idx])
+			let planeOffset = 13056 * this._map.getPlane()
 
 			if (input.dataset.axis === "x") {
-				game.x = Number(input.value)
+				game.x = Number(input.value) - planeOffset
 			} else {
 				game.y = Number(input.value)
 			}
