@@ -384,6 +384,7 @@ textarea {
 }
 
 .leaflet-control-display-poly-vertex-row .leaflet-control-display-label {
+	grid-column: auto;
 	min-width: 50px;
 	text-align: right;
 }
