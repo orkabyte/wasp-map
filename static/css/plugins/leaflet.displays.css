@@ -377,20 +377,22 @@ textarea {
 }
 
 .leaflet-control-display-poly-vertex-row {
-	display: grid;
-	grid-template-columns: auto 1fr auto 1fr;
+	display: flex;
 	gap: 8px;
 	align-items: center;
 }
 
 .leaflet-control-display-poly-vertex-row .leaflet-control-display-label {
-	grid-column: auto;
-	min-width: 50px;
 	text-align: right;
+	flex-shrink: 0;
+}
+
+.leaflet-control-display-poly-vertex-row .leaflet-control-display-label:first-child {
+	min-width: 55px;
 }
 
 .leaflet-control-display-poly-vertex-row .leaflet-control-display-input-number {
-	grid-column: auto;
+	flex: 1;
 	min-width: 0;
 }
 
