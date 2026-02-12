@@ -18,7 +18,7 @@ import "../leaflet.js"
 			if (this._clickCopyDisabled) return
 			let x = Math.floor(e.latlng.lng)
 			let y = Math.floor(e.latlng.lat)
-			let v2x = x * 4 - 4096
+			let v2x = x * 4 - 4096 + 13056 * this._plane
 			let v2y = 50430 - y * 4
 			let copystr = `[${v2x}, ${v2y}]`
 			navigator.clipboard.writeText(copystr).then(
