@@ -1068,8 +1068,8 @@ export default void (function (factory) {
 			let planeOffset = 13056 * this._map.getPlane()
 			let tMinX = Math.floor(global.x1 / 4) * 4
 			let tMaxX = Math.ceil(global.x2 / 4) * 4
-			let tMinY = Math.floor((global.y2 - 2) / 4) * 4 + 2
-			let tMaxY = Math.ceil((global.y1 - 2) / 4) * 4 + 2
+			let tMinY = Math.floor((global.y1 - 2) / 4) * 4 + 2
+			let tMaxY = Math.ceil((global.y2 - 2) / 4) * 4 + 2
 			let tileCount = ((tMaxX - tMinX) / 4) * ((tMaxY - tMinY) / 4)
 			if (tileCount > 50000) {
 				this._boxCoords.value = "Area too large (>50,000 tiles)"
@@ -1077,7 +1077,7 @@ export default void (function (factory) {
 				let tiles = []
 				for (let y = tMinY; y < tMaxY; y += 4) {
 					for (let x = tMinX; x < tMaxX; x += 4) {
-						tiles.push([x + planeOffset, y])
+						tiles.push([x + planeOffset, y + 4])
 					}
 				}
 				this._boxCoords.value = JSON.stringify(tiles)
@@ -1105,7 +1105,7 @@ export default void (function (factory) {
 				this._tileHighlight.setTiles([], [])
 			} else {
 				let { selected, border } = result
-				let outputTiles = selected.map((t) => [t[0] + planeOffset, t[1]])
+				let outputTiles = selected.map((t) => [t[0] + planeOffset, t[1] + 4])
 				this._polyCoords.value = JSON.stringify(outputTiles)
 				this._tileHighlight.setTiles(selected, border)
 			}
@@ -1143,7 +1143,8 @@ export default void (function (factory) {
 				)
 
 				let xLabel = L.DomUtil.create("label", "leaflet-control-display-label", row)
-				xLabel.textContent = "P" + (i + 1) + " X"
+				xLabel.textContent = "V" + (i + 1) + " X"
+				xLabel.title = "Vertex " + (i + 1)
 
 				let xInput = L.DomUtil.create("input", "leaflet-control-display-input-number", row)
 				xInput.setAttribute("type", "number")
@@ -1153,6 +1154,7 @@ export default void (function (factory) {
 
 				let yLabel = L.DomUtil.create("label", "leaflet-control-display-label", row)
 				yLabel.textContent = "Y"
+				yLabel.title = "Vertex " + (i + 1)
 
 				let yInput = L.DomUtil.create("input", "leaflet-control-display-input-number", row)
 				yInput.setAttribute("type", "number")
