@@ -143,7 +143,7 @@ import "../leaflet.js"
 					var nums = numbers.map(Number)
 					destination = {
 						plane: this._map.getPlane(),
-						globalX: (nums[0] + 4096) / 4,
+						globalX: (nums[0] + 4096 - 13056 * this._map.getPlane()) / 4,
 						globalY: (50430 - nums[1]) / 4
 					}
 				}
@@ -288,8 +288,8 @@ import "../leaflet.js"
 			this.globalY = parseInt(position.lat)
 			let chunk = this.convert(this.globalX, this.globalY)
 
-			this._chunkBox.textContent = "Chunk(" + chunk.chunkX + ", " + chunk.chunkY + ")"
-			let v2x = this.globalX * 4 - 4096
+			this._chunkBox.textContent = "Chunk(" + chunk.chunkX + ", " + chunk.chunkY + ", " + this._map._plane + ")"
+			let v2x = this.globalX * 4 - 4096 + 13056 * this._map._plane
 			let v2y = 50430 - this.globalY * 4
 			this._tileBox.textContent = "[" + v2x + ", " + v2y + "]"
 
