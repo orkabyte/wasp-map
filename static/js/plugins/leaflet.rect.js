@@ -502,7 +502,7 @@ export default void (function (factory) {
 			for (let i = 0; i < this.vertices.length; i++) {
 				let j = (i + 1) % this.vertices.length
 				let line = L.polyline([this.vertices[i].getLatLng(), this.vertices[j].getLatLng()], {
-					weight: 20,
+					weight: 36,
 					opacity: 0,
 					bubblingMouseEvents: false,
 					className: "leaflet-edge-handle"
@@ -534,7 +534,20 @@ export default void (function (factory) {
 			return L.latLng(a.lat + t * dy, a.lng + t * dx)
 		},
 
+		_nearVertex: function (e) {
+			let pt = this._map.latLngToContainerPoint(e.latlng)
+			for (let v of this.vertices) {
+				let vpt = this._map.latLngToContainerPoint(v.getLatLng())
+				if (pt.distanceTo(vpt) < 16) return true
+			}
+			return false
+		},
+
 		_onEdgeHover: function (e) {
+			if (this._nearVertex(e)) {
+				this._removeHoverPreview()
+				return
+			}
 			let pts = e.target.getLatLngs()
 			let latlng = this._projectOnSegment(e.latlng, pts[0], pts[1])
 			if (!this._hoverPreview) {
@@ -567,6 +580,7 @@ export default void (function (factory) {
 		},
 
 		_onEdgeClick: function (e) {
+			if (this._nearVertex(e)) return
 			L.DomEvent.stopPropagation(e.originalEvent)
 			L.DomEvent.preventDefault(e.originalEvent)
 			let insertAfter = e.target._edgeIndex
