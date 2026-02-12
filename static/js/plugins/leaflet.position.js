@@ -281,6 +281,13 @@ import "../leaflet.js"
 			this.redrawRect()
 		},
 		redrawRect: function () {
+			if (this._map._hidePositionRect) {
+				this._rect.setBounds([
+					[-1000, -1000],
+					[-1000, -1000]
+				])
+				return
+			}
 			this._chunkBox.style.display = "flex"
 			this._tileBox.style.display = "flex"
 			let position = this._map.containerPointToLatLng(this._containerPointCache)

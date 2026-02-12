@@ -434,6 +434,7 @@ export default void (function (factory) {
 			this.vertices = latlngs.map((ll) => new Vertex(ll, this, "move"))
 			this.edges = []
 			this._dragging = false
+			this._hoverPreview = null
 			return L.Polygon.prototype.initialize.call(this, latlngs, options)
 		},
 
@@ -481,23 +482,68 @@ export default void (function (factory) {
 			for (let i = 0; i < this.vertices.length; i++) {
 				let j = (i + 1) % this.vertices.length
 				let line = L.polyline([this.vertices[i].getLatLng(), this.vertices[j].getLatLng()], {
-					weight: 12,
+					weight: 20,
 					opacity: 0,
 					bubblingMouseEvents: false,
 					className: "leaflet-edge-handle"
 				})
 				line._edgeIndex = i
 				line.addTo(map)
-				line.getElement().style.cursor = "crosshair"
+				line.getElement().style.cursor = "none"
 				line.on("mousedown", this._onEdgeClick, this)
+				line.on("mousemove", this._onEdgeHover, this)
+				line.on("mouseout", this._onEdgeHoverEnd, this)
 				this.edges.push(line)
 			}
 		},
 
 		_updateEdges: function () {
 			if (!this.edges || !this.edges.length) return
+			this._removeHoverPreview()
 			this.edges.forEach((e) => e.remove())
 			this._createEdges(this._map)
+		},
+
+		_projectOnSegment: function (p, a, b) {
+			let dx = b.lng - a.lng
+			let dy = b.lat - a.lat
+			let len2 = dx * dx + dy * dy
+			if (len2 === 0) return a
+			let t = ((p.lng - a.lng) * dx + (p.lat - a.lat) * dy) / len2
+			t = Math.max(0, Math.min(1, t))
+			return L.latLng(a.lat + t * dy, a.lng + t * dx)
+		},
+
+		_onEdgeHover: function (e) {
+			let pts = e.target.getLatLngs()
+			let latlng = this._projectOnSegment(e.latlng, pts[0], pts[1])
+			if (!this._hoverPreview) {
+				this._hoverPreview = L.circleMarker(latlng, {
+					radius: 6,
+					color: "#00d4ff",
+					fillColor: "#00d4ff",
+					fillOpacity: 0.4,
+					weight: 2,
+					interactive: false
+				}).addTo(this._map)
+			} else {
+				this._hoverPreview.setLatLng(latlng)
+			}
+			this._map._hidePositionRect = true
+		},
+
+		_onEdgeHoverEnd: function () {
+			this._removeHoverPreview()
+		},
+
+		_removeHoverPreview: function () {
+			if (this._hoverPreview) {
+				this._hoverPreview.remove()
+				this._hoverPreview = null
+			}
+			if (this._map) {
+				this._map._hidePositionRect = false
+			}
 		},
 
 		_onEdgeClick: function (e) {
@@ -554,6 +600,7 @@ export default void (function (factory) {
 
 		remove: function () {
 			if (this._dragging) this._onDragEnd()
+			this._removeHoverPreview()
 			this.edges.forEach((e) => e.remove())
 			this.vertices.forEach((v) => v.remove())
 			return L.Polygon.prototype.remove.call(this)
