@@ -456,6 +456,14 @@ textarea {
 	min-width: 380px;
 }
 
+.leaflet-control-display-card-hidden {
+	visibility: hidden;
+	height: 0;
+	overflow: hidden;
+	padding-top: 0 !important;
+	padding-bottom: 0 !important;
+}
+
 .leaflet-control-credits {
 	background: #1e1e2e;
 	border: 1px solid #3a3a4e;

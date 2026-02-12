@@ -781,8 +781,11 @@ export default void (function (factory) {
 			this._boxCard.addEventListener("change", this.changeRect.bind(this))
 
 			// --- Poly card ---
-			this._polyCard = L.DomUtil.create("div", "leaflet-control-display-form-poly", container)
-			this._polyCard.style.display = "none"
+			this._polyCard = L.DomUtil.create(
+				"div",
+				"leaflet-control-display-form-poly leaflet-control-display-card-hidden",
+				container
+			)
 
 			this._polyVertexList = L.DomUtil.create(
 				"div",
@@ -843,8 +846,8 @@ export default void (function (factory) {
 			if (mode === "box") {
 				L.DomUtil.addClass(this._boxBtn, "leaflet-control-display-mode-btn-active")
 				L.DomUtil.removeClass(this._polyBtn, "leaflet-control-display-mode-btn-active")
-				this._boxCard.style.display = ""
-				this._polyCard.style.display = "none"
+				L.DomUtil.removeClass(this._boxCard, "leaflet-control-display-card-hidden")
+				L.DomUtil.addClass(this._polyCard, "leaflet-control-display-card-hidden")
 
 				if (this.poly && this._map) {
 					this._polyLatlngs = this.poly.getVertexLatLngs()
@@ -860,8 +863,8 @@ export default void (function (factory) {
 			} else {
 				L.DomUtil.removeClass(this._boxBtn, "leaflet-control-display-mode-btn-active")
 				L.DomUtil.addClass(this._polyBtn, "leaflet-control-display-mode-btn-active")
-				this._boxCard.style.display = "none"
-				this._polyCard.style.display = ""
+				L.DomUtil.addClass(this._boxCard, "leaflet-control-display-card-hidden")
+				L.DomUtil.removeClass(this._polyCard, "leaflet-control-display-card-hidden")
 
 				if (this.rect._map) {
 					this.rect.remove()
