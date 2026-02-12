@@ -65,13 +65,95 @@ export default void (function (factory) {
 		let tiles = []
 		for (let y = minY; y <= maxY; y++) {
 			for (let x = minX; x <= maxX; x++) {
-				if (pointInPolygon(x, y, gameVertices)) {
+				if (pointInPolygon(x + 0.5, y + 0.5, gameVertices)) {
 					tiles.push([x, y])
 				}
 			}
 		}
 		return tiles
 	}
+
+	// --- TileHighlight canvas overlay ---
+	let TileHighlight = L.Layer.extend({
+		initialize: function () {
+			this._tiles = []
+		},
+
+		onAdd: function (map) {
+			this._canvas = L.DomUtil.create("canvas", "")
+			this._canvas.style.position = "absolute"
+			this._canvas.style.pointerEvents = "none"
+			map.getPanes().overlayPane.appendChild(this._canvas)
+
+			this._redraw = this._redraw.bind(this)
+			this._onAnimZoom = this._onAnimZoom.bind(this)
+
+			map.on("moveend viewreset zoomend", this._redraw)
+			map.on("zoomanim", this._onAnimZoom)
+			this._redraw()
+			return this
+		},
+
+		onRemove: function (map) {
+			map.off("moveend viewreset zoomend", this._redraw)
+			map.off("zoomanim", this._onAnimZoom)
+			L.DomUtil.remove(this._canvas)
+			this._canvas = null
+			return this
+		},
+
+		setTiles: function (tiles) {
+			this._tiles = tiles
+			if (this._map) this._redraw()
+		},
+
+		_onAnimZoom: function (e) {
+			let map = this._map
+			let scale = map.getZoomScale(e.zoom)
+			let offset = map._latLngBoundsToNewLayerBounds(map.getBounds(), e.zoom, e.center).min
+			L.DomUtil.setTransform(this._canvas, offset, scale)
+		},
+
+		_redraw: function () {
+			let map = this._map
+			if (!map || !this._canvas) return
+
+			let size = map.getSize()
+			let dpr = window.devicePixelRatio || 1
+			let canvas = this._canvas
+
+			canvas.width = size.x * dpr
+			canvas.height = size.y * dpr
+			canvas.style.width = size.x + "px"
+			canvas.style.height = size.y + "px"
+
+			let topLeft = map.containerPointToLayerPoint([0, 0])
+			L.DomUtil.setPosition(canvas, topLeft)
+
+			let ctx = canvas.getContext("2d")
+			ctx.scale(dpr, dpr)
+			ctx.clearRect(0, 0, size.x, size.y)
+			ctx.fillStyle = "rgba(0, 212, 255, 0.15)"
+
+			let viewBounds = map.getBounds()
+			let tiles = this._tiles
+
+			for (let i = 0; i < tiles.length; i++) {
+				let gx = tiles[i][0]
+				let gy = tiles[i][1]
+
+				let nw = gameToMap(gx, gy)
+				let se = gameToMap(gx + 1, gy + 1)
+
+				if (se.lng < viewBounds.getWest() || nw.lng > viewBounds.getEast()) continue
+				if (se.lat > viewBounds.getNorth() || nw.lat < viewBounds.getSouth()) continue
+
+				let pNW = map.latLngToLayerPoint(nw)
+				let pSE = map.latLngToLayerPoint(se)
+				ctx.fillRect(pNW.x - topLeft.x, pNW.y - topLeft.y, pSE.x - pNW.x, pSE.y - pNW.y)
+			}
+		}
+	})
 
 	// --- Vertex and DraggableSquare (unchanged) ---
 	let VertexIcon = L.DivIcon.extend({
@@ -350,12 +432,14 @@ export default void (function (factory) {
 	L.DraggablePolygon = L.Polygon.extend({
 		initialize: function (latlngs, options) {
 			this.vertices = latlngs.map((ll) => new Vertex(ll, this, "move"))
+			this.edges = []
 			this._dragging = false
 			return L.Polygon.prototype.initialize.call(this, latlngs, options)
 		},
 
 		onAdd: function (map) {
 			this.vertices.forEach((v) => v.trunc().addTo(map))
+			this._createEdges(map)
 			L.Polygon.prototype.onAdd.call(this, map)
 
 			this._onDragStart = this._onDragStart.bind(this)
@@ -371,6 +455,7 @@ export default void (function (factory) {
 		update: function () {
 			let latlngs = this.vertices.map((v) => v.getLatLng())
 			this.setLatLngs(latlngs)
+			this._updateEdges()
 			this.options.owner.updatePoly()
 		},
 
@@ -385,8 +470,48 @@ export default void (function (factory) {
 			this.vertices = latlngs.map((ll) => new Vertex(ll, this, "move"))
 			if (this._map) {
 				this.vertices.forEach((v) => v.trunc().addTo(this._map))
+				this._updateEdges()
 			}
 			this.setLatLngs(latlngs)
+		},
+
+		// --- Edge handles for vertex insertion ---
+		_createEdges: function (map) {
+			this.edges = []
+			for (let i = 0; i < this.vertices.length; i++) {
+				let j = (i + 1) % this.vertices.length
+				let line = L.polyline(
+					[this.vertices[i].getLatLng(), this.vertices[j].getLatLng()],
+					{
+						weight: 12,
+						opacity: 0,
+						bubblingMouseEvents: false,
+						className: "leaflet-edge-handle"
+					}
+				)
+				line._edgeIndex = i
+				line.addTo(map)
+				line.getElement().style.cursor = "crosshair"
+				line.on("mousedown", this._onEdgeClick, this)
+				this.edges.push(line)
+			}
+		},
+
+		_updateEdges: function () {
+			if (!this.edges || !this.edges.length) return
+			this.edges.forEach((e) => e.remove())
+			this._createEdges(this._map)
+		},
+
+		_onEdgeClick: function (e) {
+			L.DomEvent.stopPropagation(e.originalEvent)
+			L.DomEvent.preventDefault(e.originalEvent)
+			let insertAfter = e.target._edgeIndex
+			let latlng = this._map.mouseEventToLatLng(e.originalEvent)
+			let newVertex = new Vertex(latlng, this, "move")
+			newVertex.trunc().addTo(this._map)
+			this.vertices.splice(insertAfter + 1, 0, newVertex)
+			this.update()
 		},
 
 		_onDragStart: function (e) {
@@ -416,6 +541,7 @@ export default void (function (factory) {
 			})
 
 			this.setLatLngs(this.vertices.map((v) => v.getLatLng()))
+			this._updateEdges()
 			this.options.owner.updatePoly()
 		},
 
@@ -431,10 +557,21 @@ export default void (function (factory) {
 
 		remove: function () {
 			if (this._dragging) this._onDragEnd()
+			this.edges.forEach((e) => e.remove())
 			this.vertices.forEach((v) => v.remove())
 			return L.Polygon.prototype.remove.call(this)
 		}
 	})
+
+	// --- Shared polygon options ---
+	let polyOpts = {
+		color: "#00d4ff",
+		fillColor: "#00d4ff",
+		fillOpacity: 0,
+		weight: 3,
+		className: "leaflet-draggable-poly",
+		bubblingMouseEvents: false
+	}
 
 	// --- SVG icons ---
 	let copySvg =
@@ -498,6 +635,7 @@ export default void (function (factory) {
 
 			this.poly = null
 			this._polyLatlngs = null
+			this._tileHighlight = new TileHighlight()
 
 			return L.Control.Display.prototype.onAdd.call(this, map)
 		},
@@ -704,6 +842,7 @@ export default void (function (factory) {
 					this._polyLatlngs = this.poly.getVertexLatLngs()
 					this.poly.remove()
 				}
+				if (this._tileHighlight._map) this._tileHighlight.remove()
 
 				if (this._expanded) {
 					let bounds = this._map.getBounds().pad(-0.3)
@@ -722,16 +861,9 @@ export default void (function (factory) {
 
 				if (this._expanded) {
 					let latlngs = this._polyLatlngs || this._defaultPentagon()
-					this.poly = new L.DraggablePolygon(latlngs, {
-						owner: this,
-						color: "#00d4ff",
-						fillColor: "#00d4ff",
-						fillOpacity: 0.15,
-						weight: 3,
-						className: "leaflet-draggable-poly",
-						bubblingMouseEvents: false
-					})
+					this.poly = new L.DraggablePolygon(latlngs, L.extend({ owner: this }, polyOpts))
 					this.poly.addTo(this._map)
+					this._tileHighlight.addTo(this._map)
 				}
 			}
 		},
@@ -824,8 +956,10 @@ export default void (function (factory) {
 			let tiles = computeTilesInPolygon(gameCoords)
 			if (tiles === null) {
 				this._polyCoords.value = "Area too large (>50,000 tiles)"
+				this._tileHighlight.setTiles([])
 			} else {
 				this._polyCoords.value = JSON.stringify(tiles)
+				this._tileHighlight.setTiles(tiles)
 			}
 		},
 
@@ -923,6 +1057,7 @@ export default void (function (factory) {
 				this.poly.remove()
 				this.poly = null
 			}
+			if (this._tileHighlight._map) this._tileHighlight.remove()
 			this._drawState = "poly_first"
 			this._drawPoints = []
 			this._map.getContainer().style.cursor = "crosshair"
@@ -1034,16 +1169,9 @@ export default void (function (factory) {
 			this._map.getContainer().style.cursor = ""
 			this._polyNewBtn.innerHTML = newIconSvg + " New"
 
-			this.poly = new L.DraggablePolygon(this._drawPoints, {
-				owner: this,
-				color: "#00d4ff",
-				fillColor: "#00d4ff",
-				fillOpacity: 0.15,
-				weight: 3,
-				className: "leaflet-draggable-poly",
-				bubblingMouseEvents: false
-			})
+			this.poly = new L.DraggablePolygon(this._drawPoints, L.extend({ owner: this }, polyOpts))
 			this.poly.addTo(this._map)
+			this._tileHighlight.addTo(this._map)
 			this._polyLatlngs = this._drawPoints.slice()
 			this._drawPoints = []
 			this._drawState = null
@@ -1078,16 +1206,9 @@ export default void (function (factory) {
 			} else if (this._drawState === "poly_first" || this._drawState === "poly_drawing") {
 				this._polyNewBtn.innerHTML = newIconSvg + " New"
 				if (this._polyLatlngs && this._polyLatlngs.length >= 3) {
-					this.poly = new L.DraggablePolygon(this._polyLatlngs, {
-						owner: this,
-						color: "#00d4ff",
-						fillColor: "#00d4ff",
-						fillOpacity: 0.15,
-						weight: 3,
-						className: "leaflet-draggable-poly",
-						bubblingMouseEvents: false
-					})
+					this.poly = new L.DraggablePolygon(this._polyLatlngs, L.extend({ owner: this }, polyOpts))
 					this.poly.addTo(this._map)
+					this._tileHighlight.addTo(this._map)
 				}
 			}
 
@@ -1104,16 +1225,9 @@ export default void (function (factory) {
 				this.rect.addTo(this._map)
 			} else {
 				let latlngs = this._polyLatlngs || this._defaultPentagon()
-				this.poly = new L.DraggablePolygon(latlngs, {
-					owner: this,
-					color: "#00d4ff",
-					fillColor: "#00d4ff",
-					fillOpacity: 0.15,
-					weight: 3,
-					className: "leaflet-draggable-poly",
-					bubblingMouseEvents: false
-				})
+				this.poly = new L.DraggablePolygon(latlngs, L.extend({ owner: this }, polyOpts))
 				this.poly.addTo(this._map)
+				this._tileHighlight.addTo(this._map)
 			}
 
 			return L.Control.Display.prototype.expand.call(this)
@@ -1131,6 +1245,7 @@ export default void (function (factory) {
 				this.poly.remove()
 				this.poly = null
 			}
+			if (this._tileHighlight._map) this._tileHighlight.remove()
 
 			return L.Control.Display.prototype.collapse.call(this)
 		}
