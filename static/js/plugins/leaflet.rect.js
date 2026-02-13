@@ -1000,7 +1000,7 @@ export default void (function (factory) {
 		_defaultPentagon: function () {
 			let center = this._map.getCenter()
 			let zoom = this._map.getZoom()
-			let r = Math.max(8, 80 / Math.pow(2, zoom - 2))
+			let r = Math.max(8, 80 / Math.pow(2, zoom - 2)) * (2 / 3)
 			let pts = []
 			for (let i = 0; i < 5; i++) {
 				let angle = Math.PI / 2 + (2 * Math.PI * i) / 5
