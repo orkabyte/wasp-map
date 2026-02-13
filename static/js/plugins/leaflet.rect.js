@@ -1154,6 +1154,7 @@ export default void (function (factory) {
 				xInput.value = Math.round(coord.x + planeOffset)
 				xInput.dataset.index = i
 				xInput.dataset.axis = "x"
+				wrapWithCopyBtn(xInput, this._map)
 
 				let yLabel = L.DomUtil.create("label", "leaflet-control-display-label", row)
 				yLabel.textContent = "Y"
@@ -1164,6 +1165,7 @@ export default void (function (factory) {
 				yInput.value = Math.round(coord.y)
 				yInput.dataset.index = i
 				yInput.dataset.axis = "y"
+				wrapWithCopyBtn(yInput, this._map)
 
 				L.DomEvent.on(xInput, "change", this._onVertexInputChange, this)
 				L.DomEvent.on(yInput, "change", this._onVertexInputChange, this)
