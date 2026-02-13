@@ -753,12 +753,15 @@ export default void (function (factory) {
 			this.map2000.setAttribute("readOnly", true)
 			wrapWithCopyBtn(this.map2000, map)
 
-			// --- Area Selection header ---
-			let sectionTitle = L.DomUtil.create("div", "leaflet-control-display-section-title", container)
+			// --- Area Selection header + mode toggle ---
+			let headerRow = L.DomUtil.create("div", "leaflet-control-display-section-header", container)
+			let sectionTitle = L.DomUtil.create(
+				"span",
+				"leaflet-control-display-section-title-inline",
+				headerRow
+			)
 			sectionTitle.textContent = "Area Selection"
-
-			// --- Mode toggle ---
-			let toggle = L.DomUtil.create("div", "leaflet-control-display-mode-toggle", container)
+			let toggle = L.DomUtil.create("div", "leaflet-control-display-mode-toggle-inline", headerRow)
 
 			this._boxBtn = L.DomUtil.create(
 				"button",
@@ -801,6 +804,14 @@ export default void (function (factory) {
 				container
 			)
 
+			let boxRow = L.DomUtil.create("div", "leaflet-control-map-row", this._boxCard)
+			let boxRowLabel = L.DomUtil.create("label", "leaflet-control-display-label", boxRow)
+			boxRowLabel.innerHTML = "Box"
+			this._boxField = L.DomUtil.create("input", "leaflet-control-map-input", boxRow)
+			this._boxField.setAttribute("type", "text")
+			this._boxField.setAttribute("readOnly", true)
+			wrapWithCopyBtn(this._boxField, map)
+
 			let widthLabel = L.DomUtil.create("label", "leaflet-control-display-label", this._boxCard)
 			widthLabel.innerHTML = "Width"
 			this.width = L.DomUtil.create("input", "leaflet-control-display-input-number", this._boxCard)
@@ -839,14 +850,6 @@ export default void (function (factory) {
 			;[this.width, this.height, this.x1, this.y1, this.x2, this.y2].forEach(function (input) {
 				wrapWithCopyBtn(input, map)
 			})
-
-			let boxRow = L.DomUtil.create("div", "leaflet-control-display-coords-row", this._boxCard)
-			let boxRowLabel = L.DomUtil.create("label", "leaflet-control-display-label", boxRow)
-			boxRowLabel.innerHTML = "Box"
-			this._boxField = L.DomUtil.create("input", "leaflet-control-map-input", boxRow)
-			this._boxField.setAttribute("type", "text")
-			this._boxField.setAttribute("readOnly", true)
-			wrapWithCopyBtn(this._boxField, map)
 
 			let boxCoordsRow = L.DomUtil.create(
 				"div",
