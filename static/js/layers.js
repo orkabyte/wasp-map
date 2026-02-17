@@ -565,7 +565,13 @@ import "./plugins/leaflet.markerIcon.js"
 								})
 							})
 							.finally(() => {
-								this._map.addMessage(`Found ${npcs.length} instances of this npc`)
+								if (npcs.length > 50) {
+									this._map.addMessage(
+										`Found ${npcs.length} instances of this npc. Too many to zoom to fit.`
+									)
+								} else {
+									this._map.addMessage(`Found ${npcs.length} instances of this npc`)
+								}
 
 								if (npcs.length > 0) {
 									let bounds = L.latLngBounds(npcs.map((npc) => [npc.y + 0.5, npc.x + 0.5]))
@@ -575,7 +581,9 @@ import "./plugins/leaflet.markerIcon.js"
 									})
 									let mostCommonPlane = +Object.entries(planes).sort((a, b) => b[1] - a[1])[0][0]
 									this._map.setPlane(mostCommonPlane)
-									this._map.fitBounds(bounds, { maxZoom: 6, animate: false })
+									if (npcs.length <= 50) {
+										this._map.fitBounds(bounds, { maxZoom: 6, animate: false })
+									}
 								}
 							})
 					})
