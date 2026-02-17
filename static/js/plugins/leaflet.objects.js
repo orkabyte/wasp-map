@@ -2,6 +2,7 @@
 
 import "../leaflet.js"
 import "../layers.js"
+import "./leaflet.popup-builder.js"
 
 export default void (function (factory) {
 	var L
@@ -153,42 +154,51 @@ export default void (function (factory) {
 					if (el) L.DomUtil.addClass(el, "marker-selected")
 				}
 			})
-			let textContainer = document.createElement("div")
-			let imgContainer = document.createElement("div")
-			imgContainer.setAttribute("class", "object-image-container")
-			let container = document.createElement("div")
-			container.appendChild(imgContainer)
-			container.appendChild(textContainer)
 
-			marker.bindPopup(container, {
-				autoPan: false
+			let placeholder = document.createElement("div")
+			placeholder.textContent = "Loading..."
+			marker.bindPopup(placeholder, {
+				autoPan: true,
+				autoPanPadding: L.point(40, 40)
 			})
-
-			let as_text = (i) => (typeof i !== "string" ? JSON.stringify(i) : i)
 
 			marker.once("popupopen", async () => {
 				let data = await fetch(`${this.options.folder}/location_configs/${item.id}.json`).then(
 					(res) => res.json()
 				)
-				let textfield = ""
-				if (data.name !== undefined) {
-					// put name first
-					textfield += `name = ${data.name}<br>`
-				}
-				textfield += `plane = ${item.plane}<br>`
-				textfield += `x = ${(item.i << 6) + item.x}<br>`
-				textfield += `y = ${(item.j << 6) + item.y}<br>`
-				textfield += `id = ${item.id}<br>`
-				textfield += `type = ${item.type}<br>`
-				textfield += `rotation = ${item.rotation}<br>`
+				let globalX = (item.i << 6) + item.x
+				let globalY = (item.j << 6) + item.y
 
+				let rawData = {
+					plane: item.plane,
+					x: globalX,
+					y: globalY,
+					id: item.id,
+					type: item.type,
+					rotation: item.rotation
+				}
 				for (const [key, value] of Object.entries(data)) {
-					if (key !== "name") {
-						textfield += `${key} = ${as_text(value)}<br>`
-					}
+					if (key !== "name") rawData[key] = value
 				}
 
-				textContainer.innerHTML = textfield
+				let imgContainer = document.createElement("div")
+				imgContainer.setAttribute("class", "object-image-container")
+
+				let popup = L.PopupBuilder.createPopup(
+					"object",
+					{
+						name: data.name,
+						globalX: globalX,
+						globalY: globalY,
+						plane: item.plane,
+						imgContainer: imgContainer,
+						rawData: rawData
+					},
+					this._map
+				)
+
+				marker.getPopup().setContent(popup)
+				marker.getPopup().update()
 			})
 
 			return marker
@@ -216,46 +226,46 @@ export default void (function (factory) {
 					if (el) L.DomUtil.addClass(el, "marker-selected")
 				}
 			})
-			let crowdsourcedescription = document.createElement("div")
-			crowdsourcedescription.innerHTML =
-				"This object's location was gathered with the Runescape Wiki crowdsource project. See <a href='https://oldschool.runescape.wiki/w/RuneScape:Crowdsourcing#Object_locations'>here</a> for more information."
-			let textContainer = document.createElement("div")
-			let imgContainer = document.createElement("div")
-			imgContainer.setAttribute("class", "object-image-container")
-			let container = document.createElement("div")
-			container.appendChild(crowdsourcedescription)
-			container.appendChild(imgContainer)
-			container.appendChild(textContainer)
 
-			marker.bindPopup(container, {
-				autoPan: false
+			let placeholder = document.createElement("div")
+			placeholder.textContent = "Loading..."
+			marker.bindPopup(placeholder, {
+				autoPan: true,
+				autoPanPadding: L.point(40, 40)
 			})
-
-			let as_text = (i) => (typeof i !== "string" ? JSON.stringify(i) : i)
 
 			marker.once("popupopen", async () => {
 				let location_config = await fetch(
 					`${this.options.folder}/location_configs/${item.id}.json`
 				).then((res) => res.json())
 
-				let textfield = ""
-				if (location_config.name !== undefined) {
-					// put name first
-					textfield += `name = ${location_config.name}<br>`
-				}
-				textfield += `plane = ${item.location.plane}<br>`
-				textfield += `x = ${item.location.x}<br>`
-				textfield += `y = ${item.location.y}<br>`
-				textfield += `label = ${item.label}<br>`
+				let globalX = item.location.x
+				let globalY = item.location.y
 
+				let rawData = { plane: item.location.plane, x: globalX, y: globalY, label: item.label }
 				for (const [key, value] of Object.entries(location_config)) {
-					if (key !== "name") {
-						textfield += `${key} = ${as_text(value)}<br>`
-					}
+					if (key !== "name") rawData[key] = value
 				}
 
-				textContainer.innerHTML = textfield
+				let imgContainer = document.createElement("div")
+				imgContainer.setAttribute("class", "object-image-container")
 				this.createModelTab(item, location_config).then((img) => imgContainer.appendChild(img))
+
+				let popup = L.PopupBuilder.createPopup(
+					"object",
+					{
+						name: location_config.name,
+						globalX: globalX,
+						globalY: globalY,
+						plane: item.location.plane,
+						imgContainer: imgContainer,
+						rawData: rawData
+					},
+					this._map
+				)
+
+				marker.getPopup().setContent(popup)
+				marker.getPopup().update()
 			})
 
 			return marker
@@ -280,44 +290,53 @@ export default void (function (factory) {
 					if (el) L.DomUtil.addClass(el, "marker-selected")
 				}
 			})
-			let textContainer = document.createElement("div")
-			let imgContainer = document.createElement("div")
-			imgContainer.setAttribute("class", "object-image-container")
-			let container = document.createElement("div")
-			container.appendChild(imgContainer)
-			container.appendChild(textContainer)
 
-			marker.bindPopup(container, {
-				autoPan: false
+			let placeholder = document.createElement("div")
+			placeholder.textContent = "Loading..."
+			marker.bindPopup(placeholder, {
+				autoPan: true,
+				autoPanPadding: L.point(40, 40)
 			})
-
-			let as_text = (i) => (typeof i !== "string" ? JSON.stringify(i) : i)
 
 			marker.once("popupopen", async () => {
 				let location_config = await fetch(
 					`${this.options.folder}/location_configs/${item.id}.json`
 				).then((res) => res.json())
 
-				let textfield = ""
-				if (location_config.name !== undefined) {
-					// put name first
-					textfield += `name = ${location_config.name}<br>`
-				}
-				textfield += `plane = ${item.plane}<br>`
-				textfield += `x = ${(item.i << 6) + item.x}<br>`
-				textfield += `y = ${(item.j << 6) + item.y}<br>`
-				textfield += `id = ${item.id}<br>`
-				textfield += `type = ${item.type}<br>`
-				textfield += `rotation = ${item.rotation}<br>`
+				let globalX = (item.i << 6) + item.x
+				let globalY = (item.j << 6) + item.y
 
+				let rawData = {
+					plane: item.plane,
+					x: globalX,
+					y: globalY,
+					id: item.id,
+					type: item.type,
+					rotation: item.rotation
+				}
 				for (const [key, value] of Object.entries(location_config)) {
-					if (key !== "name") {
-						textfield += `${key} = ${as_text(value)}<br>`
-					}
+					if (key !== "name") rawData[key] = value
 				}
 
-				textContainer.innerHTML = textfield
+				let imgContainer = document.createElement("div")
+				imgContainer.setAttribute("class", "object-image-container")
 				this.createModelTab(item, location_config).then((img) => imgContainer.appendChild(img))
+
+				let popup = L.PopupBuilder.createPopup(
+					"object",
+					{
+						name: location_config.name,
+						globalX: globalX,
+						globalY: globalY,
+						plane: item.plane,
+						imgContainer: imgContainer,
+						rawData: rawData
+					},
+					this._map
+				)
+
+				marker.getPopup().setContent(popup)
+				marker.getPopup().update()
 			})
 
 			return marker
