@@ -27,7 +27,7 @@ img.huechange,
 
 .leaflet-popup-content {
 	overflow-wrap: break-word;
-	width: 220px;
+	width: 300px;
 }
 
 .leaflet-control-message-container {
@@ -176,4 +176,145 @@ img.huechange,
 	border-radius: 6px;
 	padding: 4px 8px;
 	outline: none;
+}
+
+/* Popup builder */
+.popup-builder {
+	position: relative;
+}
+
+.popup-builder-header {
+	display: flex;
+	align-items: center;
+	margin-bottom: 6px;
+}
+
+.popup-builder-coords-row {
+	position: relative;
+	display: flex;
+	margin-bottom: 8px;
+}
+
+.popup-builder-coords-input {
+	width: 100%;
+	box-sizing: border-box;
+	background: #2a2a3c;
+	border: 1px solid #3a3a4e;
+	color: #e0e0e8;
+	border-radius: 6px;
+	padding: 6px 28px 6px 10px;
+	font-family: monospace;
+	font-size: 13px;
+	outline: none;
+}
+
+.popup-builder-coords-copy-btn {
+	position: absolute;
+	right: 4px;
+	top: 50%;
+	transform: translateY(-50%);
+	background: none;
+	border: none;
+	color: #9999aa;
+	cursor: pointer;
+	padding: 2px;
+	display: none;
+	line-height: 0;
+}
+
+.popup-builder-coords-copy-btn svg {
+	width: 14px;
+	height: 14px;
+}
+
+.popup-builder-coords-row:hover .popup-builder-coords-copy-btn {
+	display: block;
+}
+
+.popup-builder-coords-copy-btn:hover {
+	color: #e0e0e8;
+}
+
+.popup-builder-toolbar {
+	display: flex;
+	gap: 6px;
+}
+
+.popup-builder-toolbar-btn {
+	flex: 1;
+	background: #2a2a3c;
+	color: #e0e0e8;
+	border: 1px solid #3a3a4e;
+	border-radius: 6px;
+	padding: 4px 8px;
+	font-size: 11px;
+	font-weight: 600;
+	cursor: pointer;
+	transition:
+		background-color 0.15s,
+		border-color 0.15s,
+		color 0.15s;
+}
+
+.popup-builder-toolbar-btn:hover {
+	background: #3a3a5e;
+}
+
+.popup-builder-toolbar-btn-active {
+	border-color: #00d4ff;
+	color: #00d4ff;
+}
+
+.popup-builder-side-panel {
+	position: absolute;
+	left: calc(100% + 32px);
+	top: 0;
+	width: 280px;
+	background: #1e1e2e;
+	border: 1px solid #3a3a4e;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+	padding: 10px;
+	display: none;
+	z-index: 10;
+}
+
+.popup-builder-side-panel-visible {
+	display: block;
+}
+
+.popup-builder-side-panel-content {
+	font-family: monospace;
+	font-size: 11px;
+	color: #b0b0c0;
+	white-space: pre-wrap;
+	word-break: break-all;
+	max-height: 300px;
+	overflow-y: auto;
+	margin: 0 0 8px 0;
+}
+
+.popup-builder-side-panel-copy-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	width: 100%;
+	background: #2a2a3c;
+	color: #e0e0e8;
+	border: 1px solid #3a3a4e;
+	border-radius: 6px;
+	padding: 5px 10px;
+	font-size: 12px;
+	cursor: pointer;
+	transition: background-color 0.15s;
+}
+
+.popup-builder-side-panel-copy-btn:hover {
+	background: #3a3a5e;
+}
+
+.popup-builder-side-panel-copy-btn svg {
+	width: 14px;
+	height: 14px;
 }

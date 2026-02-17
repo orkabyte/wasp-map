@@ -2,6 +2,7 @@
 import MD5 from "./MD5.js"
 import "./leaflet.js"
 import "./plugins/leaflet.markerIcon.js"
+import "./plugins/leaflet.popup-builder.js"
 ;(function (factory) {
 	var L
 	if (typeof define === "function" && define.amd) {
@@ -794,11 +795,25 @@ import "./plugins/leaflet.markerIcon.js"
 				}
 			})
 
-			let popUpText = Object.entries(npc)
-				.map((x) => x.map((i) => (typeof i !== "string" ? JSON.stringify(i) : i)).join(" = "))
-				.join("<br>")
-			marker.bindPopup(popUpText, {
-				autoPan: false
+			let rawData = {}
+			for (const [key, value] of Object.entries(npc)) {
+				rawData[key] = value
+			}
+
+			let popup = L.PopupBuilder.createPopup(
+				"npc",
+				{
+					name: npc.name,
+					globalX: npc.x,
+					globalY: npc.y,
+					plane: npc.p,
+					rawData: rawData
+				},
+				this._map
+			)
+			marker.bindPopup(popup, {
+				autoPan: true,
+				autoPanPadding: L.point(40, 40)
 			})
 			marker.addTo(map)
 
@@ -1421,11 +1436,25 @@ import "./plugins/leaflet.markerIcon.js"
 				}
 			})
 
-			let popUpText = Object.entries(item)
-				.map((x) => x.map((i) => (typeof i !== "string" ? JSON.stringify(i) : i)).join(" = "))
-				.join("<br>")
-			marker.bindPopup(popUpText, {
-				autoPan: false
+			let rawData = {}
+			for (const [key, value] of Object.entries(item)) {
+				rawData[key] = value
+			}
+
+			let popup = L.PopupBuilder.createPopup(
+				"generic",
+				{
+					name: item.name,
+					globalX: item.x,
+					globalY: item.y,
+					plane: item.p ?? item.plane,
+					rawData: rawData
+				},
+				this._map
+			)
+			marker.bindPopup(popup, {
+				autoPan: true,
+				autoPanPadding: L.point(40, 40)
 			})
 
 			return marker
