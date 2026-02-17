@@ -367,12 +367,6 @@ export default void (function (factory) {
 			idInput.setAttribute("value", objectId)
 			idInput.setAttribute("autocomplete", "off")
 
-			let spacerLabel = L.DomUtil.create("label", "leaflet-control-display-label", objectForm)
-			spacerLabel.innerHTML = "&nbsp;"
-			spacerLabel.style.visibility = "hidden"
-			let spacerInput = L.DomUtil.create("div", "leaflet-control-display-input", objectForm)
-			spacerInput.style.visibility = "hidden"
-
 			let submitButton = L.DomUtil.create("input", "leaflet-control-display-submit", objectForm)
 			submitButton.setAttribute("type", "submit")
 			submitButton.setAttribute("value", "Show on map")
