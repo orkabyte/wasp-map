@@ -485,12 +485,13 @@ export default void (function (factory) {
 			idInput.setAttribute("value", npcId)
 			idInput.setAttribute("autocomplete", "off")
 
-			let rangeDescription = L.DomUtil.create("label", "leaflet-control-display-label", npcForm)
-			rangeDescription.innerHTML = "Wander range"
-			let rangeInput = L.DomUtil.create("input", "leaflet-control-display-input", npcForm)
-			rangeInput.setAttribute("name", "range")
-			rangeInput.setAttribute("type", "number")
-			rangeInput.setAttribute("value", range ?? "7")
+			// TODO: re-enable wander range when collision data is available
+			// let rangeDescription = L.DomUtil.create("label", "leaflet-control-display-label", npcForm)
+			// rangeDescription.innerHTML = "Wander range"
+			// let rangeInput = L.DomUtil.create("input", "leaflet-control-display-input", npcForm)
+			// rangeInput.setAttribute("name", "range")
+			// rangeInput.setAttribute("type", "number")
+			// rangeInput.setAttribute("value", range ?? "7")
 
 			let submitButton = L.DomUtil.create("input", "leaflet-control-display-submit", npcForm)
 			submitButton.setAttribute("type", "submit")
@@ -519,7 +520,7 @@ export default void (function (factory) {
 			let id = formData.get("id").trim()
 				? Number.parseInt(formData.get("id").trim(), 10)
 				: undefined
-			let range = Number.parseInt(formData.get("range").trim()) || 0
+			let range = formData.has("range") ? Number.parseInt(formData.get("range").trim()) || 0 : 0
 			let showHeat = range || false
 			let names = name && id === undefined ? [name] : []
 			let ids = Number.isInteger(id) ? [id] : []
