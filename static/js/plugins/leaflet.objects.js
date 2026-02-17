@@ -38,7 +38,9 @@ export default void (function (factory) {
 							})
 							let mostCommonPlane = +Object.entries(planes).sort((a, b) => b[1] - a[1])[0][0]
 							this._map.setPlane(mostCommonPlane)
-							this._map.fitBounds(bounds, { maxZoom: 6, animate: false })
+							if (locations.length <= 50) {
+								this._map.fitBounds(bounds, { maxZoom: 6, animate: false })
+							}
 						}
 
 						this._icon_data = this.parseData(locations)
