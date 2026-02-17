@@ -1037,10 +1037,10 @@ export default void (function (factory) {
 
 		updateBox: function (bounds) {
 			let chunk = {
-				x1: bounds.getWest() >> 6,
-				y1: bounds.getNorth() >> 6,
-				x2: bounds.getEast() >> 6,
-				y2: bounds.getSouth() >> 6
+				x1: (bounds.getWest() >> 6) - 1,
+				y1: (bounds.getNorth() >> 6) + 1,
+				x2: (bounds.getEast() >> 6) + 1,
+				y2: (bounds.getSouth() >> 6) - 1
 			}
 
 			let global = {
@@ -1125,10 +1125,10 @@ export default void (function (factory) {
 				if (c.y > maxY) maxY = c.y
 			}
 			let chunk = {
-				x1: ((minX + 4096) / 4) >> 6,
-				y1: ((50430 - minY) / 4) >> 6,
-				x2: ((maxX + 4096) / 4) >> 6,
-				y2: ((50430 - maxY) / 4) >> 6
+				x1: (((minX + 4096) / 4) >> 6) - 1,
+				y1: (((50430 - minY) / 4) >> 6) + 1,
+				x2: (((maxX + 4096) / 4) >> 6) + 1,
+				y2: (((50430 - maxY) / 4) >> 6) - 1
 			}
 			let plane = this._map.getPlane()
 			this.map1400.value = `Map.SetupChunk(Chunk([${chunk.x1},${chunk.y1},${chunk.x2},${chunk.y2}], ${plane}));`
