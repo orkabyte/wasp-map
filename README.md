@@ -4,39 +4,19 @@ An interactive Old School RuneScape (OSRS) map built on Leaflet.js. Hosted at **
 
 ## Features
 
-### Navigation & Coordinates
-- Pan, zoom, and switch between all 4 game planes (vertical levels)
-- Live tile and chunk coordinates displayed on mouse movement — click anywhere to copy
-- "Go to" panel for jumping directly to specific coordinates
-- Fullscreen mode
-
-### Search
-- Search for named locations with autocomplete and fly-to navigation
-- Search and highlight NPCs on the map with automatic zoom-to-fit
-- Search and highlight game objects with sprite previews
-
-### Markers & Data Layers
-- NPC markers with plane-aware rendering (greyscaled when on a different plane)
-- Game object markers with sprite images
-- Teleport markers with route visualization — hover to see travel lines between start and destination
-- Chunk/tile grid overlay
-- Collision data heatmap
-- Varbit-based conditional layers (quest/achievement states)
-
-### Information Popups
-- Detailed popups with NPC/object information
-- Direct links to the RuneScape Wiki
-- Simba 1.4 code templates for bot scripting
-- Raw JSON data viewer
-- One-click copy for all popup data
-
-### Rectangle Tool
-- Draw rectangular regions on the map
-- Copy coordinates in Map 1400 and Map 2000 formats
-
-### Shareable URLs
-- Map state (zoom, plane, position, active layers) is encoded in the URL
-- Navigate directly to a location with `?location=LocationName`
+- **Location search** — search bar (top-left) with autocomplete. Select a result and the map flies there automatically, switching planes when needed — great for finding dungeons.
+- **NPC search** — open the "NPC" panel (top-left), type a name or ID, and hit "Show on map" to highlight every spawn location with a heatmap. NPCs on other planes appear greyscaled.
+- **Object search** — same idea via the "OBJ" panel. Shows all instances of a game object with sprite previews. Auto-zooms to fit when there are fewer than 50 results.
+- **Click-to-copy coordinates** — click anywhere on the map to copy its `[x, y]` V2 coordinates to the clipboard. A confirmation toast appears at the top.
+- **Live coordinate display** — hover the map to see real-time chunk and tile coordinates (top-right). Click either readout to open a "Go to" panel for direct navigation.
+- **Area selection tools** — open the "MAP" panel (top-left) and choose between **Box** or **Polygon** mode:
+  - **Box** — click "New", then click two corners. Drag corners or edges to resize. Drag the fill to move the whole box. Editable width/height/coordinate fields with copy buttons.
+  - **Polygon** — click "New", place vertices by clicking, and close the shape by clicking the first vertex. Add new vertices on the fly by clicking any edge. Drag vertices to reshape, drag the fill to reposition. Tiles inside the polygon are highlighted (blue = fully inside, orange = border).
+  - Both modes output coordinates in **Simba 1.4**, **Simba 2.0**, **Box**, and **tile array** formats. Click the coords textarea to copy instantly.
+- **Rich marker popups** — click any NPC or object marker to see its name, image, V2 coordinates (with copy button), a direct Wiki link, a Simba 1.4 code template, and raw JSON data.
+- **Shareable URLs** — zoom, plane, position, and active searches are encoded in the URL. Share a link like `?location=Varrock` and the recipient sees exactly what you see.
+- **Multi-plane support** — switch between planes 0–3 with the plane control. All markers, coordinates, and overlays update accordingly.
+- **Fullscreen mode** — toggle via the fullscreen button.
 
 ## Development
 
