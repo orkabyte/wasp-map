@@ -1027,10 +1027,10 @@ export default void (function (factory) {
 				y1 = y2 + height
 			}
 
-			let bounds = L.latLngBounds([
-				[y2, x1],
-				[y1, x2]
-			])
+			let planeOffset = 13056 * this._map.getPlane()
+			let nw = gameToMap(x1 - planeOffset, y1)
+			let se = gameToMap(x2 - planeOffset, y2)
+			let bounds = L.latLngBounds([nw, se])
 			this.rect.setBounds(bounds)
 			this.updateBox(bounds)
 		},
@@ -1043,10 +1043,11 @@ export default void (function (factory) {
 				y2: (bounds.getSouth() >> 6) - 1
 			}
 
+			let planeOffset = 13056 * this._map.getPlane()
 			let global = {
-				x1: bounds.getWest() * 4 - 4096,
+				x1: bounds.getWest() * 4 - 4096 + planeOffset,
 				y1: 60 - (bounds.getNorth() * 4 - 50370),
-				x2: bounds.getEast() * 4 - 4096,
+				x2: bounds.getEast() * 4 - 4096 + planeOffset,
 				y2: 60 - (bounds.getSouth() * 4 - 50370)
 			}
 
@@ -1068,7 +1069,6 @@ export default void (function (factory) {
 				chunk.y2
 			}), ${this._map.getPlane()})]);`
 
-			let planeOffset = 13056 * this._map.getPlane()
 			let tMinX = Math.floor(global.x1 / 4) * 4
 			let tMaxX = Math.ceil(global.x2 / 4) * 4
 			let tMinY = Math.floor((global.y1 - 2) / 4) * 4 + 2
@@ -1080,7 +1080,7 @@ export default void (function (factory) {
 				let tiles = []
 				for (let y = tMinY; y < tMaxY; y += 4) {
 					for (let x = tMinX; x < tMaxX; x += 4) {
-						tiles.push([x + planeOffset, y + 4])
+						tiles.push([x, y + 4])
 					}
 				}
 				this._boxCoords.value = JSON.stringify(tiles)
