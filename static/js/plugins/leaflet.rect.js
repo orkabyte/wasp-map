@@ -694,6 +694,7 @@ export default void (function (factory) {
 		onAdd: function (map) {
 			this._mode = "box"
 			this._drawState = null
+			this._drawCursor = null
 
 			this.rect = L.draggableSquare(
 				[
@@ -1193,6 +1194,32 @@ export default void (function (factory) {
 			this.updatePoly()
 		},
 
+		// --- Draw cursor ---
+		_createDrawCursor: function (latlng) {
+			if (!this._drawCursor) {
+				this._drawCursor = L.circleMarker(latlng, {
+					radius: 5,
+					color: "#00d4ff",
+					fillColor: "#00d4ff",
+					fillOpacity: 0.4,
+					weight: 2,
+					interactive: false
+				}).addTo(this._map)
+			} else {
+				this._drawCursor.setLatLng(latlng)
+			}
+		},
+
+		_removeDrawCursor: function () {
+			if (this._drawCursor) {
+				this._drawCursor.remove()
+				this._drawCursor = null
+			}
+			if (this._map) {
+				this._map._hidePositionRect = false
+			}
+		},
+
 		// --- Drawing state machine ---
 		_handleNewBox: function () {
 			if (this._drawState === "box_first" || this._drawState === "box_second") {
@@ -1203,12 +1230,14 @@ export default void (function (factory) {
 
 			if (this.rect._map) this.rect.remove()
 			this._drawState = "box_first"
+			this._map._hidePositionRect = true
 			this._map.getContainer().style.cursor = "crosshair"
 			this._boxNewBtn.innerHTML = newIconSvg + " Cancel"
 
 			this._drawMapClick = this._onDrawMapClick.bind(this)
 			this._drawMapMove = this._onDrawMapMove.bind(this)
 			this._map.on("click", this._drawMapClick)
+			this._map.on("mousemove", this._drawMapMove)
 		},
 
 		_handleNewPoly: function () {
@@ -1225,6 +1254,7 @@ export default void (function (factory) {
 			}
 			if (this._tileHighlight._map) this._tileHighlight.remove()
 			this._drawState = "poly_first"
+			this._map._hidePositionRect = true
 			this._drawPoints = []
 			this._map.getContainer().style.cursor = "crosshair"
 			this._polyNewBtn.innerHTML = newIconSvg + " Cancel"
@@ -1245,7 +1275,7 @@ export default void (function (factory) {
 		},
 
 		_onDrawMapClick: function (e) {
-			let latlng = L.latLng(Math.trunc(e.latlng.lat), Math.trunc(e.latlng.lng))
+			let latlng = L.latLng(Math.round(e.latlng.lat), Math.round(e.latlng.lng))
 
 			if (this._drawState === "box_first") {
 				this._drawCorner1 = latlng
@@ -1257,7 +1287,6 @@ export default void (function (factory) {
 					dashArray: "6,4"
 				}).addTo(this._map)
 				this._drawState = "box_second"
-				this._map.on("mousemove", this._drawMapMove)
 			} else if (this._drawState === "box_second") {
 				this._map.off("mousemove", this._drawMapMove)
 				this._map.off("click", this._drawMapClick)
@@ -1265,6 +1294,7 @@ export default void (function (factory) {
 					this._drawRect.remove()
 					this._drawRect = null
 				}
+				this._removeDrawCursor()
 				this._map.getContainer().style.cursor = ""
 				this._boxNewBtn.innerHTML = newIconSvg + " New"
 
@@ -1292,7 +1322,8 @@ export default void (function (factory) {
 		},
 
 		_onDrawMapMove: function (e) {
-			let latlng = L.latLng(Math.trunc(e.latlng.lat), Math.trunc(e.latlng.lng))
+			let latlng = L.latLng(Math.round(e.latlng.lat), Math.round(e.latlng.lng))
+			this._createDrawCursor(latlng)
 
 			if (this._drawState === "box_second" && this._drawRect) {
 				this._drawRect.setBounds(L.latLngBounds([this._drawCorner1, latlng]))
@@ -1332,6 +1363,7 @@ export default void (function (factory) {
 				this._closeIndicator.remove()
 				this._closeIndicator = null
 			}
+			this._removeDrawCursor()
 			this._map.getContainer().style.cursor = ""
 			this._polyNewBtn.innerHTML = newIconSvg + " New"
 
@@ -1348,6 +1380,7 @@ export default void (function (factory) {
 
 			this._map.off("click", this._drawMapClick)
 			this._map.off("mousemove", this._drawMapMove)
+			this._removeDrawCursor()
 			this._map.getContainer().style.cursor = ""
 
 			if (this._drawRect) {
