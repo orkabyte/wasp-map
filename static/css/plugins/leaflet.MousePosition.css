@@ -90,3 +90,7 @@
 .leaflet-control-position-go:hover {
 	background: #4a4a6a;
 }
+
+.leaflet-control-position-form + .leaflet-control-position-form {
+	border-top: 1px solid #3a3a4e;
+}

@@ -46,6 +46,27 @@ import "../leaflet.js"
 			var goBtn = L.DomUtil.create("button", "leaflet-control-position-go", form)
 			goBtn.textContent = "Go"
 
+			var boxForm = L.DomUtil.create("div", "leaflet-control-position-form", this._panel)
+			this._boxLabel = L.DomUtil.create("span", "leaflet-control-position-label", boxForm)
+			this._boxLabel.textContent = "Go to box:"
+			this._boxInput = L.DomUtil.create("input", "leaflet-control-position-input", boxForm)
+			this._boxInput.type = "text"
+			this._boxInput.placeholder = "x1, y1, x2, y2"
+			var goBoxBtn = L.DomUtil.create("button", "leaflet-control-position-go", boxForm)
+			goBoxBtn.textContent = "Go"
+
+			L.DomEvent.on(goBoxBtn, "click", this._onGoBox, this)
+			L.DomEvent.on(
+				this._boxInput,
+				"keydown",
+				function (e) {
+					if (e.key === "Enter") {
+						this._onGoBox()
+					}
+				},
+				this
+			)
+
 			this._rect = L.rectangle(
 				[
 					[0, 0],
@@ -162,6 +183,41 @@ import "../leaflet.js"
 						"which is not a valid coordinate."
 					)
 				}
+			}
+		},
+
+		_onGoBox: function () {
+			var input = this._boxInput.value
+			if (!input) return
+			var numbers = input.match(/-?\d+/g)
+			if (!numbers || numbers.length < 4) return
+			var nums = numbers.map(Number)
+			var x1 = nums[0],
+				y1 = nums[1],
+				x2 = nums[2],
+				y2 = nums[3]
+			var centerX = (x1 + x2) / 2
+			var centerY = (y1 + y2) / 2
+			var destination = {
+				plane: this._map.getPlane(),
+				globalX: (centerX + 4096 - 13056 * this._map.getPlane()) / 4,
+				globalY: (50430 - centerY) / 4
+			}
+			if (this.validateCoordinate(destination)) {
+				this.panMap(destination)
+				this._map.fire("gotobox", { gameCoords: { x1: x1, y1: y1, x2: x2, y2: y2 } })
+				this._boxInput.value = ""
+				this._panelOpen = false
+				this._panelMode = null
+				L.DomUtil.removeClass(this._panel, "visible")
+			} else {
+				console.error(
+					input,
+					"was parsed as center",
+					centerX,
+					centerY,
+					"which is not a valid coordinate."
+				)
 			}
 		},
 
