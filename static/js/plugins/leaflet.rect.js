@@ -248,9 +248,8 @@ export default void (function (factory) {
 
 		onAdd: function (map) {
 			this.vertices.forEach((v) => v.trunc().addTo(map))
-			this._createEdges(map)
-
 			L.Rectangle.prototype.onAdd.call(this, map)
+			this._createEdges(map)
 
 			// Drag-to-move handlers
 			this._onDragStart = this._onDragStart.bind(this)
@@ -397,22 +396,26 @@ export default void (function (factory) {
 
 		// --- Vertex corner resize ---
 		update: function (changedVertex) {
-			let i = (this.vertices.indexOf(changedVertex) + 2) & 0x3
-			let oppositeVertex = this.vertices[i]
-			let otherVertices = this.vertices.filter(
-				(vertex) => vertex !== oppositeVertex && vertex !== changedVertex
-			)
+			let changedIdx = this.vertices.indexOf(changedVertex)
+			let oppositeIdx = (changedIdx + 2) & 0x3
+			let oppositeVertex = this.vertices[oppositeIdx]
 
 			let corner1 = oppositeVertex.getLatLng()
 			let corner2 = changedVertex.getLatLng()
 			let newBounds = L.latLngBounds([corner1, corner2])
 			this.setRectBounds(newBounds)
 
-			let newLatLng1 = L.latLng(corner1.lat, corner2.lng)
-			otherVertices[0].setLatLng(newLatLng1)
-
-			let newLatLng2 = L.latLng(corner2.lat, corner1.lng)
-			otherVertices[1].setLatLng(newLatLng2)
+			let positions = [
+				newBounds.getSouthWest(),
+				newBounds.getNorthWest(),
+				newBounds.getNorthEast(),
+				newBounds.getSouthEast(),
+			]
+			for (let i = 0; i < 4; i++) {
+				if (i !== changedIdx && i !== oppositeIdx) {
+					this.vertices[i].setLatLng(positions[i])
+				}
+			}
 
 			this._updateEdges()
 			this.options.owner.updateBox(newBounds)
