@@ -716,6 +716,8 @@ export default void (function (factory) {
 			this._polyLatlngs = null
 			this._tileHighlight = new TileHighlight()
 
+			map.on("gotobox", this._onGotoBox, this)
+
 			return L.Control.Display.prototype.onAdd.call(this, map)
 		},
 
@@ -812,6 +814,14 @@ export default void (function (factory) {
 			this._boxField.setAttribute("type", "text")
 			this._boxField.setAttribute("readOnly", true)
 			wrapWithCopyBtn(this._boxField, map)
+
+			let arrayRow = L.DomUtil.create("div", "leaflet-control-map-row", this._boxCard)
+			let arrayRowLabel = L.DomUtil.create("label", "leaflet-control-display-label", arrayRow)
+			arrayRowLabel.innerHTML = "Array"
+			this._arrayField = L.DomUtil.create("input", "leaflet-control-map-input", arrayRow)
+			this._arrayField.setAttribute("type", "text")
+			this._arrayField.setAttribute("readOnly", true)
+			wrapWithCopyBtn(this._arrayField, map)
 
 			let widthLabel = L.DomUtil.create("label", "leaflet-control-display-label", this._boxCard)
 			widthLabel.innerHTML = "Width"
@@ -1062,6 +1072,7 @@ export default void (function (factory) {
 			this.y1.value = global.y1
 			this.y2.value = global.y2
 			this._boxField.value = `Box(${global.x1},${global.y1},${global.x2},${global.y2})`
+			this._arrayField.value = `[${global.x1},${global.y1},${global.x2},${global.y2}]`
 			this.map1400.value = `Map.SetupChunk(Chunk([${chunk.x1},${chunk.y1},${chunk.x2},${
 				chunk.y2
 			}], ${this._map.getPlane()}));`
@@ -1430,6 +1441,22 @@ export default void (function (factory) {
 			}
 
 			return L.Control.Display.prototype.expand.call(this)
+		},
+
+		_onGotoBox: function (e) {
+			let gc = e.gameCoords
+			let planeOffset = 13056 * this._map.getPlane()
+			let nw = gameToMap(gc.x1 - planeOffset, gc.y1)
+			let se = gameToMap(gc.x2 - planeOffset, gc.y2)
+			let bounds = L.latLngBounds([nw, se])
+
+			if (this._mode !== "box") this._switchMode("box")
+			this._cancelDrawing()
+			if (!this._expanded) this.expand()
+
+			this.rect.setBounds(bounds)
+			if (!this.rect._map) this.rect.addTo(this._map)
+			this.updateBox(bounds)
 		},
 
 		collapse: function () {
