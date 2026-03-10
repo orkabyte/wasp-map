@@ -11,6 +11,7 @@ import "../plugins/leaflet.displays.js"
 import "../plugins/leaflet.urllayers.js"
 import "../plugins/leaflet.rect.js"
 import "../plugins/leaflet.clickcopy.js"
+import "../plugins/leaflet.graph.js"
 import "../plugins/leaflet.maplabels.js"
 import "../plugins/leaflet.locationSearch.js"
 
@@ -116,6 +117,8 @@ void (function (global) {
 		minZoom: -3
 	})
 
+	let graph = L.waspWebGraph({ dataPath: "data_osrs/waspweb-graph.json" })
+
 	grid.addTo(runescape_map)
 
 	L.control.layers
@@ -124,7 +127,8 @@ void (function (global) {
 			{
 				objects: objects,
 				npcs: npcs,
-				grid: grid
+				grid: grid,
+				"WaspWeb Graph": graph
 			},
 			{
 				collapsed: true,
