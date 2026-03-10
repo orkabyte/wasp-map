@@ -21,7 +21,7 @@ export default void (function (factory) {
 
 	// V2 global coords (Chunk2Coordinate system) -> leaflet
 	function v2GlobalToLatLng(gx, gy) {
-		return L.latLng((50428 - gy) / 4, (gx + 4096) / 4)
+		return L.latLng((50430 - gy) / 4, (gx + 4096) / 4)
 	}
 
 	var _graphCache = {}
@@ -217,9 +217,9 @@ export default void (function (factory) {
 					]
 				}
 				L.polyline(edgeSegments, {
-					color: "#22cc66",
+					color: "#ffff00",
 					weight: 1,
-					opacity: 0.4,
+					opacity: 0.5,
 					interactive: false,
 					renderer: this._renderer
 				}).addTo(group)
@@ -229,11 +229,11 @@ export default void (function (factory) {
 			for (var k = 0; k < nodes.length; k++) {
 				var latlng = v2GlobalToLatLng(nodes[k][0], nodes[k][1])
 				L.circleMarker(latlng, {
-					radius: 2,
-					color: "#22cc66",
-					fillColor: "#22cc66",
-					fillOpacity: 0.7,
-					opacity: 0.7,
+					radius: 3,
+					color: "#ff0000",
+					fillColor: "#ff0000",
+					fillOpacity: 0.8,
+					opacity: 0.8,
 					weight: 0,
 					interactive: false,
 					renderer: this._renderer
@@ -246,8 +246,8 @@ export default void (function (factory) {
 					var dlatlng = v2GlobalToLatLng(data.doors[d][0], data.doors[d][1])
 					L.circleMarker(dlatlng, {
 						radius: 3,
-						color: "#ff4444",
-						fillColor: "#ff4444",
+						color: "#00ffff",
+						fillColor: "#00ffff",
 						fillOpacity: 0.8,
 						opacity: 0.8,
 						weight: 0,
@@ -372,28 +372,11 @@ export default void (function (factory) {
 
 		_updateVisibility: function () {
 			if (!this._built || !this._map) return
-			var zoom = this._map.getZoom()
 
-			// Named locations: visible at zoom >= -2
-			if (zoom >= -2) {
-				if (!this.hasLayer(this._namedLayer)) this.addLayer(this._namedLayer)
-			} else {
-				if (this.hasLayer(this._namedLayer)) this.removeLayer(this._namedLayer)
-			}
-
-			// Edges: visible at zoom >= 0
-			if (zoom >= 0) {
-				if (!this.hasLayer(this._edgeLayer)) this.addLayer(this._edgeLayer)
-			} else {
-				if (this.hasLayer(this._edgeLayer)) this.removeLayer(this._edgeLayer)
-			}
-
-			// V1 Nodes: visible at zoom >= 2
-			if (zoom >= 2) {
-				if (!this.hasLayer(this._nodeLayer)) this.addLayer(this._nodeLayer)
-			} else {
-				if (this.hasLayer(this._nodeLayer)) this.removeLayer(this._nodeLayer)
-			}
+			// Hide all V1 layers (V2 replaces them)
+			if (this.hasLayer(this._namedLayer)) this.removeLayer(this._namedLayer)
+			if (this.hasLayer(this._edgeLayer)) this.removeLayer(this._edgeLayer)
+			if (this.hasLayer(this._nodeLayer)) this.removeLayer(this._nodeLayer)
 
 			// V2 chunks: managed by _updateV2Chunks
 			this._updateV2Chunks()
