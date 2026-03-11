@@ -3,7 +3,6 @@
 	height: 18px;
 	display: block;
 	pointer-events: none;
-	opacity: 0.4;
 	transition: opacity 0.15s;
 }
 
@@ -14,23 +13,43 @@
 		background-color 0.15s;
 }
 
-.leaflet-control-layer-toggles a:hover svg {
+/* Toggle buttons: dimmed inactive, cyan active */
+.leaflet-control-layer-toggles .layer-toggle svg {
+	opacity: 0.4;
+}
+
+.leaflet-control-layer-toggles .layer-toggle:hover svg {
 	opacity: 0.7;
 }
 
-.leaflet-control-layer-toggles a.layer-active svg {
+.leaflet-control-layer-toggles .layer-toggle.layer-active svg {
 	opacity: 1;
 	color: #00d4ff;
 }
 
-.leaflet-control-layer-toggles a.layer-active {
+.leaflet-control-layer-toggles .layer-toggle.layer-active {
 	background-color: #1a2a30;
 }
 
-.leaflet-control-layer-toggles .layer-toggles-decoration {
-	cursor: default;
+/* Slide animation for toggle buttons */
+.leaflet-control-layer-toggles .layer-toggle {
+	max-height: 38px;
+	overflow: hidden;
+	transition:
+		max-height 0.25s ease,
+		opacity 0.25s ease,
+		border-bottom-width 0.25s ease,
+		color 0.15s,
+		background-color 0.15s;
 }
 
-.leaflet-control-layer-toggles .layer-toggles-decoration svg {
-	opacity: 0.7;
+.leaflet-control-layer-toggles.collapsed .layer-toggle {
+	max-height: 0;
+	opacity: 0;
+	border-bottom-width: 0;
+}
+
+/* Layers icon: full white, always visible */
+.leaflet-control-layer-toggles .layer-toggles-btn svg {
+	opacity: 1;
 }
