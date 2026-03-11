@@ -36,7 +36,8 @@ void (function (global) {
 		maxZoom: 8,
 		doubleClickZoom: false,
 		showMapBorder: true,
-		enableUrlLocation: true
+		enableUrlLocation: true,
+		attributionControl: false
 	}))
 
 	L.control.display
@@ -119,21 +120,28 @@ void (function (global) {
 
 	let graph = L.waspWebGraph({ dataPath: "data_osrs/waspweb-graph.json" })
 
-	grid.addTo(runescape_map)
-
-	L.control.layers
-		.urlParam(
-			{},
+	L.control
+		.layerToggles([
 			{
-				objects: objects,
-				npcs: npcs,
-				grid: grid,
-				"WaspWeb Graph": graph
+				name: "objects",
+				layer: objects,
+				icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 1L2 5v8l7 4 7-4V5z"/><path d="M2 5l7 4m0 0l7-4M9 9v8"/></svg>'
 			},
 			{
-				collapsed: true,
-				position: "bottomright"
+				name: "npcs",
+				layer: npcs,
+				icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="3"/><path d="M3 17c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>'
+			},
+			{
+				name: "grid",
+				layer: grid,
+				icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="1" x2="6" y2="17"/><line x1="12" y1="1" x2="12" y2="17"/><line x1="1" y1="6" x2="17" y2="6"/><line x1="1" y1="12" x2="17" y2="12"/></svg>'
+			},
+			{
+				name: "WaspWeb Graph",
+				layer: graph,
+				icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="14" y2="4"/><line x1="14" y1="4" x2="9" y2="14"/><line x1="9" y1="14" x2="4" y2="4"/><circle cx="4" cy="4" r="2" fill="currentColor"/><circle cx="14" cy="4" r="2" fill="currentColor"/><circle cx="9" cy="14" r="2" fill="currentColor"/></svg>'
 			}
-		)
+		])
 		.addTo(runescape_map)
 })(this || window)

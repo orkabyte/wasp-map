@@ -1,71 +1,117 @@
-import "../leaflet.js";
+import "../leaflet.js"
 
-export default void function (factory) {
-    var L;
-    if (typeof define === "function" && define.amd) {
-        define(["leaflet"], factory);
-    } else if (typeof module !== "undefined") {
-        L = require("leaflet");
-        module.exports = factory(L);
-    } else {
-        if (typeof window.L === "undefined") {
-            throw new Error("Leaflet must be loaded first");
-        }
-        factory(window.L);
-    }
-}(function (L) {
-    L.Control.Layers.UrlParam = L.Control.Layers.extend({
-            onAdd: function (map) {
-                this.initParamLayers(map);
-                return L.Control.Layers.prototype.onAdd.call(this, map);
-            },
-			
-			initParamLayers: function(map){
-				let url = new URL(window.location.href);
-                let params = url.searchParams;
-                let initLayers = params.getAll('layer');
+export default void (function (factory) {
+	var L
+	if (typeof define === "function" && define.amd) {
+		define(["leaflet"], factory)
+	} else if (typeof module !== "undefined") {
+		L = require("leaflet")
+		module.exports = factory(L)
+	} else {
+		if (typeof window.L === "undefined") {
+			throw new Error("Leaflet must be loaded first")
+		}
+		factory(window.L)
+	}
+})(function (L) {
+	L.Control.LayerToggles = L.Control.extend({
+		options: {
+			position: "bottomright"
+		},
 
-				for (const overlay of this._layers.filter(layer => layer.overlay)){
-					if (initLayers.includes(overlay.name)){
-						overlay.layer.addTo(map);
+		initialize: function (overlays, options) {
+			L.Util.setOptions(this, options)
+			this._overlays = overlays
+			this._buttons = []
+		},
+
+		onAdd: function (map) {
+			var container = L.DomUtil.create("div", "leaflet-bar leaflet-control-layer-toggles")
+			L.DomEvent.disableClickPropagation(container)
+			L.DomEvent.disableScrollPropagation(container)
+
+			var url = new URL(window.location.href)
+			var initLayers = url.searchParams.getAll("layer")
+
+			for (var i = 0; i < this._overlays.length; i++) {
+				var overlay = this._overlays[i]
+				var btn = this._createToggleButton(container, overlay, map)
+
+				if (initLayers.includes(overlay.name)) {
+					overlay.layer.addTo(map)
+				}
+
+				this._buttons.push({ btn: btn, overlay: overlay })
+			}
+
+			// decorative layers icon at bottom
+			var deco = L.DomUtil.create("a", "layer-toggles-decoration", container)
+			deco.innerHTML =
+				'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>'
+			deco.title = "Layers"
+			deco.href = "#"
+			L.DomEvent.on(deco, "click", L.DomEvent.preventDefault)
+
+			return container
+		},
+
+		_createToggleButton: function (container, overlay, map) {
+			var btn = L.DomUtil.create("a", "", container)
+			btn.innerHTML = overlay.icon
+			btn.title = overlay.name
+			btn.href = "#"
+
+			var self = this
+
+			L.DomEvent.on(btn, "click", function (e) {
+				L.DomEvent.preventDefault(e)
+				if (map.hasLayer(overlay.layer)) {
+					map.removeLayer(overlay.layer)
+				} else {
+					overlay.layer.addTo(map)
+				}
+			})
+
+			map.on("layeradd layerremove", function (e) {
+				if (e.layer === overlay.layer) {
+					if (map.hasLayer(overlay.layer)) {
+						L.DomUtil.addClass(btn, "layer-active")
+						self._addSearchParam(overlay.name)
+					} else {
+						L.DomUtil.removeClass(btn, "layer-active")
+						self._removeSearchParam(overlay.name)
 					}
 				}
-			},
+			})
 
-            addSearchParam: function (layerName) {
-                let url = new URL(window.location.href);
-                let params = url.searchParams;
-                params.append('layer', layerName);
-                url.search = params;
-                history.replaceState(0, "Location", url);
-            },
+			return btn
+		},
 
-            removeSearchParam: function (layerName) {
-                let url = new URL(window.location.href);
-                let params = url.searchParams;
-                let otherLayers = params.getAll('layer').filter(layer => layer !== layerName);
+		_addSearchParam: function (layerName) {
+			var url = new URL(window.location.href)
+			var params = url.searchParams
+			params.append("layer", layerName)
+			url.search = params
+			history.replaceState(0, "Location", url)
+		},
 
-                params.delete('layer');
-                for (const layer of otherLayers) {
-                    params.append('layer', layer);
-                }
-                url.search = params;
-                history.replaceState(0, "Location", url);
-            },
+		_removeSearchParam: function (layerName) {
+			var url = new URL(window.location.href)
+			var params = url.searchParams
+			var otherLayers = params.getAll("layer").filter(function (l) {
+				return l !== layerName
+			})
 
-            _onLayerChange: function (e) {
-                let layerName = this._getLayer(L.Util.stamp(e.target)).name;
-                if (e.type === 'add') {
-                    this.addSearchParam(layerName);
-                } else if (e.type === 'remove') {
-                    this.removeSearchParam(layerName);
-                }
-                return L.Control.Layers.prototype._onLayerChange.call(this, e);
-            }
-        });
+			params.delete("layer")
+			for (var i = 0; i < otherLayers.length; i++) {
+				params.append("layer", otherLayers[i])
+			}
+			url.search = params
+			history.replaceState(0, "Location", url)
+		}
+	})
 
-    L.control.layers.urlParam = function (baseLayers, overlays, options) {
-        return new L.Control.Layers.UrlParam(baseLayers, overlays, options);
-    };
-});
-
+	L.control.layerToggles = function (overlays, options) {
+		return new L.Control.LayerToggles(overlays, options)
+	}
+})
