@@ -25,6 +25,7 @@ import os
 import re
 import sys
 import zlib
+from collections import defaultdict
 from pathlib import Path
 
 # Constants matching RSTranslator
@@ -141,7 +142,7 @@ def convert_graph(
 
 
 def find_cache_dirs(simba_root: Path) -> list[Path]:
-    """Find all Simba graph cache directories (multiple version hashes)."""
+    """Find all Simba graph cache directories, newest first."""
     cache_base = simba_root / "Data" / "cache" / "map"
     if not cache_base.exists():
         return []
@@ -152,7 +153,125 @@ def find_cache_dirs(simba_root: Path) -> list[Path]:
             graphs_dir = version_dir / "graphs"
             if graphs_dir.exists():
                 results.append(graphs_dir)
+    # Sort newest first so newer data takes precedence via seen_chunks dedup
+    results.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     return results
+
+
+def process_multi_chunk_file(
+    json_path: Path,
+    match: re.Match,
+    plane: int,
+    plane_str: str,
+    out_plane_dir: Path,
+    seen_chunks: set,
+    index: dict,
+) -> tuple[int, int]:
+    """Split a multi-chunk file into individual per-chunk output files.
+
+    Returns (files_written, error_count).
+    """
+    start_x = int(match.group(1))
+    start_y = int(match.group(2))
+    end_x = int(match.group(3))
+    end_y = int(match.group(4))
+
+    files_written = 0
+    errors = 0
+
+    try:
+        with open(json_path, "r") as f:
+            data = json.load(f)
+
+        nodes = parse_nodes(data["nodes"])
+        paths = parse_paths(data["paths"])
+        doors = parse_doors(data.get("doors", "")) if data.get("doors") else []
+
+        if not nodes:
+            return (0, 0)
+
+        # Convert all nodes to global coords using start chunk offset
+        offset_x, offset_y = chunk2coordinate(start_x, start_y)
+        global_nodes = [(lx + offset_x, ly + offset_y) for lx, ly in nodes]
+
+        # Assign each node to its correct chunk
+        node_chunks = []
+        for gx, gy in global_nodes:
+            cx = (gx + SCOPE_X1) // CHUNK_SIDE
+            cy = (SCOPE_Y2 - gy + CHUNK_SIDE - 1) // CHUNK_SIDE
+            node_chunks.append((cx, cy))
+
+        # Group nodes by chunk
+        chunk_node_indices = defaultdict(list)
+        for i, (cx, cy) in enumerate(node_chunks):
+            chunk_node_indices[(cx, cy)].append(i)
+
+        # Build edges from paths
+        edges = paths_to_edges(paths)
+
+        # For each chunk: remap node indices, keep only intra-chunk edges
+        for (cx, cy), orig_indices in chunk_node_indices.items():
+            chunk_key = f"{cx}-{cy}"
+            dedup_key = (plane, chunk_key)
+            if dedup_key in seen_chunks:
+                continue
+
+            # Remap: old index -> new index within this chunk
+            old_to_new = {old: new for new, old in enumerate(orig_indices)}
+
+            # Nodes for this chunk
+            chunk_nodes = [[global_nodes[i][0], global_nodes[i][1]] for i in orig_indices]
+
+            # Edges: keep only those where both endpoints are in this chunk
+            chunk_edges = []
+            for a, b in edges:
+                if a in old_to_new and b in old_to_new:
+                    chunk_edges.append([old_to_new[a], old_to_new[b]])
+
+            result = {"nodes": chunk_nodes, "edges": chunk_edges}
+
+            # Assign doors to this chunk by center coordinate
+            if doors:
+                chunk_doors = []
+                for door in doors:
+                    if not door["separating"]:
+                        continue
+                    dgx = door["center"][0] + offset_x
+                    dgy = door["center"][1] + offset_y
+                    dcx = (dgx + SCOPE_X1) // CHUNK_SIDE
+                    dcy = (SCOPE_Y2 - dgy + CHUNK_SIDE - 1) // CHUNK_SIDE
+                    if dcx == cx and dcy == cy:
+                        chunk_doors.append([dgx, dgy])
+                if chunk_doors:
+                    result["doors"] = chunk_doors
+
+            seen_chunks.add(dedup_key)
+            out_path = out_plane_dir / f"{chunk_key}.json"
+            with open(out_path, "w") as f:
+                json.dump(result, f, separators=(",", ":"))
+
+            index["chunks"][plane_str].append(chunk_key)
+            index["stats"]["totalNodes"] += len(chunk_nodes)
+            index["stats"]["totalEdges"] += len(chunk_edges)
+            files_written += 1
+
+        print(f"  Multi-chunk {json_path.name}: split into {files_written} chunks "
+              f"({len(global_nodes)} nodes, {cx_cy_range(start_x, start_y, end_x, end_y)})")
+
+    except Exception as e:
+        errors += 1
+        print(f"  ERROR: {json_path.name}: {e}")
+
+    return (files_written, errors)
+
+
+def cx_cy_range(sx, sy, ex, ey):
+    """Format the chunk range for logging."""
+    chunks = []
+    for x in range(min(sx, ex), max(sx, ex) + 1):
+        for y in range(min(sy, ey), max(sy, ey) + 1):
+            chunks.append(f"{x}-{y}")
+    return ", ".join(chunks)
 
 
 def process_all(simba_root: Path, output_root: Path):
@@ -204,9 +323,14 @@ def process_all(simba_root: Path, output_root: Path):
                 match = multi_pattern.match(json_path.name)
                 if not match:
                     continue
-                # Multi-chunk: use start chunk as origin (has min X, max Y)
-                chunk_x = int(match.group(1))
-                chunk_y = int(match.group(2))
+                # Multi-chunk: split into individual per-chunk outputs
+                written, errs = process_multi_chunk_file(
+                    json_path, match, plane, plane_str,
+                    out_plane_dir, seen_chunks, index,
+                )
+                total_files += written
+                error_count += errs
+                continue
 
             try:
                 with open(json_path, "r") as f:
