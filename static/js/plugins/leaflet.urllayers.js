@@ -44,19 +44,24 @@ export default void (function (factory) {
 				this._buttons.push({ btn: btn, overlay: overlay })
 			}
 
-			// decorative layers icon at bottom
-			var deco = L.DomUtil.create("a", "layer-toggles-decoration", container)
-			deco.innerHTML =
+			// layers icon — toggles visibility of the toggle buttons
+			var layersBtn = L.DomUtil.create("a", "layer-toggles-btn", container)
+			layersBtn.innerHTML =
 				'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>'
-			deco.title = "Layers"
-			deco.href = "#"
-			L.DomEvent.on(deco, "click", L.DomEvent.preventDefault)
+			layersBtn.title = "Layers"
+			layersBtn.href = "#"
+			L.DomEvent.on(layersBtn, "click", function (e) {
+				L.DomEvent.preventDefault(e)
+				L.DomUtil.hasClass(container, "collapsed")
+					? L.DomUtil.removeClass(container, "collapsed")
+					: L.DomUtil.addClass(container, "collapsed")
+			})
 
 			return container
 		},
 
 		_createToggleButton: function (container, overlay, map) {
-			var btn = L.DomUtil.create("a", "", container)
+			var btn = L.DomUtil.create("a", "layer-toggle", container)
 			btn.innerHTML = overlay.icon
 			btn.title = overlay.name
 			btn.href = "#"
