@@ -37,7 +37,7 @@ export default void (function (factory) {
 				var overlay = this._overlays[i]
 				var btn = this._createToggleButton(container, overlay, map)
 
-				if (initLayers.includes(overlay.name)) {
+				if (initLayers.length > 0 ? initLayers.includes(overlay.name) : overlay.default) {
 					overlay.layer.addTo(map)
 				}
 
