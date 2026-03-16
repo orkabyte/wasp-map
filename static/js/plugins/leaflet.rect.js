@@ -1074,13 +1074,13 @@ export default void (function (factory) {
 			this.x2.value = global.x2
 			this.y1.value = global.y1
 			this.y2.value = global.y2
-			this._boxField.value = `Box(${global.x1},${global.y1},${global.x2},${global.y2})`
-			this._arrayField.value = `[${global.x1},${global.y1},${global.x2},${global.y2}]`
-			this.map1400.value = `Map.SetupChunk(Chunk([${chunk.x1},${chunk.y1},${chunk.x2},${
+			this._boxField.value = `Box(${global.x1}, ${global.y1}, ${global.x2}, ${global.y2})`
+			this._arrayField.value = `[${global.x1}, ${global.y1}, ${global.x2}, ${global.y2}]`
+			this.map1400.value = `Map.SetupChunk(Chunk([${chunk.x1}, ${chunk.y1}, ${chunk.x2}, ${
 				chunk.y2
 			}], ${this._map.getPlane()}));`
 
-			this.map2000.value = `Map.Setup([Chunk(Box(${chunk.x1},${chunk.y1},${chunk.x2},${
+			this.map2000.value = `Map.Setup([Chunk(Box(${chunk.x1}, ${chunk.y1}, ${chunk.x2}, ${
 				chunk.y2
 			}), ${this._map.getPlane()})]);`
 
@@ -1146,8 +1146,8 @@ export default void (function (factory) {
 				y2: (((50430 - maxY) / 4) >> 6) - 1
 			}
 			let plane = this._map.getPlane()
-			this.map1400.value = `Map.SetupChunk(Chunk([${chunk.x1},${chunk.y1},${chunk.x2},${chunk.y2}], ${plane}));`
-			this.map2000.value = `Map.Setup([Chunk(Box(${chunk.x1},${chunk.y1},${chunk.x2},${chunk.y2}), ${plane})]);`
+			this.map1400.value = `Map.SetupChunk(Chunk([${chunk.x1}, ${chunk.y1}, ${chunk.x2}, ${chunk.y2}], ${plane}));`
+			this.map2000.value = `Map.Setup([Chunk(Box(${chunk.x1}, ${chunk.y1}, ${chunk.x2}, ${chunk.y2}), ${plane})]);`
 		},
 
 		_updateVertexList: function (gameCoords, planeOffset) {
