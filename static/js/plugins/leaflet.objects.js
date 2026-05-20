@@ -211,7 +211,7 @@ export default void (function (factory) {
 
 	L.Objects.OSRS = L.Objects.extend({
 		createChiselIcon: function (item) {
-			let { icon, greyscaleIcon } = L.MarkerIcon.createPair("huechange")
+			let { icon, greyscaleIcon } = L.MarkerIcon.createPair()
 
 			let marker = L.marker([item.location.y + 0.5, item.location.x + 0.5], {
 				icon: item.location.plane === this._map.getPlane() ? icon : greyscaleIcon
