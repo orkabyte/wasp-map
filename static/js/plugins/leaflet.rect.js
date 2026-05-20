@@ -668,7 +668,7 @@ export default void (function (factory) {
 		'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="9" y1="3" x2="9" y2="15"/><line x1="3" y1="9" x2="15" y2="9"/></svg>'
 
 	function formatVertices(verts) {
-		return "[" + verts.map((v) => `[${v[0]}, ${v[1]}]`).join(",") + "]"
+		return "[" + verts.map((v) => `[${v[0]}, ${v[1]}]`).join(", ") + "]"
 	}
 
 	function wrapWithCopyBtn(input, map) {
@@ -1124,7 +1124,7 @@ export default void (function (factory) {
 						tiles.push([x, y + 4])
 					}
 				}
-				this._boxCoords.value = JSON.stringify(tiles)
+				this._boxCoords.value = formatVertices(tiles)
 			}
 		},
 
@@ -1154,7 +1154,7 @@ export default void (function (factory) {
 			} else {
 				let { selected, border } = result
 				let outputTiles = selected.map((t) => [t[0] + planeOffset, t[1] + 4])
-				this._polyCoords.value = JSON.stringify(outputTiles)
+				this._polyCoords.value = formatVertices(outputTiles)
 				this._tileHighlight.setTiles(selected, border)
 			}
 
