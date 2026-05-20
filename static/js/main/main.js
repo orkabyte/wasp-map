@@ -126,7 +126,8 @@ void (function (global) {
 
 	let npcs = L.dynamicIcons({
 		dataPath: "data_osrs/NPCList_OSRS.json",
-		minZoom: 2
+		minZoom: 2,
+		markerClass: "huechange"
 	})
 
 	let graph = L.waspWebGraph({ dataPath: "data_osrs/waspweb-graph.json" })

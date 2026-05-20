@@ -779,7 +779,7 @@ import "./plugins/leaflet.popup-builder.js"
 		_markers: [],
 
 		addMarker: function (npc, map) {
-			let { icon, greyscaleIcon } = L.MarkerIcon.createPair()
+			let { icon, greyscaleIcon } = L.MarkerIcon.createPair("huechange")
 
 			let marker = L.marker([npc.y + 0.5, npc.x + 0.5], {
 				icon: npc.p === this._map.getPlane() ? icon : greyscaleIcon
@@ -1420,7 +1420,7 @@ import "./plugins/leaflet.popup-builder.js"
 		},
 
 		createIcon: function (item) {
-			let { icon, greyscaleIcon } = L.MarkerIcon.createPair()
+			let { icon, greyscaleIcon } = L.MarkerIcon.createPair(this.options.markerClass)
 
 			let marker = L.marker([item.y + 0.5, item.x + 0.5], {
 				icon: (item.p ?? item.plane) === this._map.getPlane() ? icon : greyscaleIcon
