@@ -1126,6 +1126,8 @@ export default void (function (factory) {
 				}
 				this._boxCoords.value = formatVertices(tiles)
 			}
+
+			this._emitSelection()
 		},
 
 		update: function (boundsOrVertex) {
@@ -1178,6 +1180,49 @@ export default void (function (factory) {
 			let plane = this._map.getPlane()
 			this.map1400.value = `Map.SetupChunk(Chunk([${chunk.x1}, ${chunk.y1}, ${chunk.x2}, ${chunk.y2}], ${plane}));`
 			this.map2000.value = `Map.Setup([Chunk(Box(${chunk.x1}, ${chunk.y1}, ${chunk.x2}, ${chunk.y2}), ${plane})]);`
+
+			this._emitSelection()
+		},
+
+		// Publishes the current selection (box or poly) on the map as
+		// `map._areaSelection` and fires an "areaselection" event. Other layers
+		// (e.g. object pins) use this to render only what's inside the selection.
+		// Geometry is in map-unit lat/lng (lat = game Y, lng = game X), the same
+		// space markers are placed in.
+		_emitSelection: function () {
+			let map = this._map
+			if (!map) return
+			let sel = null
+
+			if (this._mode === "box" && this.rect && this.rect._map) {
+				let b = this.rect.getBounds()
+				sel = {
+					mode: "box",
+					bounds: b,
+					contains: function (lat, lng) {
+						return b.contains([lat, lng])
+					}
+				}
+			} else if (this._mode === "poly" && this.poly && this.poly._map) {
+				let verts = this.poly.getVertexLatLngs()
+				let pts = verts.map((ll) => ({ x: ll.lng, y: ll.lat }))
+				sel = {
+					mode: "poly",
+					bounds: L.latLngBounds(verts),
+					contains: function (lat, lng) {
+						return pointInPolygon(lng, lat, pts)
+					}
+				}
+			}
+
+			map._areaSelection = sel
+			map.fire("areaselection", { selection: sel })
+		},
+
+		_clearSelection: function () {
+			if (!this._map) return
+			this._map._areaSelection = null
+			this._map.fire("areaselection", { selection: null })
 		},
 
 		_updateVertexList: function (gameCoords, planeOffset) {
@@ -1273,6 +1318,7 @@ export default void (function (factory) {
 			this._cancelDrawing()
 
 			if (this.rect._map) this.rect.remove()
+			this._clearSelection()
 			this._drawState = "box_first"
 			this._map._hidePositionRect = true
 			this._map.getContainer().style.cursor = "crosshair"
@@ -1297,6 +1343,7 @@ export default void (function (factory) {
 				this.poly = null
 			}
 			if (this._tileHighlight._map) this._tileHighlight.remove()
+			this._clearSelection()
 			this._drawState = "poly_first"
 			this._map._hidePositionRect = true
 			this._drawPoints = []
@@ -1505,6 +1552,8 @@ export default void (function (factory) {
 				this.poly = null
 			}
 			if (this._tileHighlight._map) this._tileHighlight.remove()
+
+			this._clearSelection()
 
 			return L.Control.Display.prototype.collapse.call(this)
 		}
