@@ -214,9 +214,18 @@ textarea {
 	grid-template-columns: auto 1fr auto 1fr;
 }
 
+/* Shared label-column width so input left edges align across box and poly modes */
+.leaflet-control-display-form-rect .leaflet-control-display-label,
+.leaflet-control-display-form-poly .leaflet-control-display-label {
+	min-width: var(--rect-label-width);
+}
+
 .leaflet-control-display-form-rect .leaflet-control-display-label,
 .leaflet-control-display-form-rect .leaflet-control-display-input-number {
 	grid-column: auto;
+}
+
+.leaflet-control-display-form-rect .leaflet-control-display-input-number {
 	min-width: 85px;
 }
 
@@ -381,8 +390,9 @@ textarea {
 }
 
 .leaflet-control-display-poly-vertices {
-	max-height: 200px;
+	height: 190px;
 	overflow-y: auto;
+	scrollbar-gutter: stable;
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
@@ -405,7 +415,7 @@ textarea {
 }
 
 .leaflet-control-display-poly-vertex-row .leaflet-control-display-label:first-child {
-	min-width: 55px;
+	min-width: var(--rect-label-width);
 }
 
 .leaflet-control-display-poly-vertex-row .leaflet-control-display-input-number {
@@ -444,10 +454,39 @@ textarea {
 	font-size: 11px;
 	resize: vertical;
 	cursor: pointer;
+	scrollbar-gutter: stable;
 }
 
 .leaflet-control-display-coords-row textarea:hover {
 	border-color: #4a4a6a;
+}
+
+/* Slim, themed scrollbars that sit in a reserved gutter (never overlap fields) */
+.leaflet-control-display-poly-vertices,
+.leaflet-control-display-coords-row textarea {
+	scrollbar-width: thin;
+	scrollbar-color: #3a3a4e transparent;
+}
+
+.leaflet-control-display-poly-vertices::-webkit-scrollbar,
+.leaflet-control-display-coords-row textarea::-webkit-scrollbar {
+	width: 8px;
+}
+
+.leaflet-control-display-poly-vertices::-webkit-scrollbar-track,
+.leaflet-control-display-coords-row textarea::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.leaflet-control-display-poly-vertices::-webkit-scrollbar-thumb,
+.leaflet-control-display-coords-row textarea::-webkit-scrollbar-thumb {
+	background: #3a3a4e;
+	border-radius: 4px;
+}
+
+.leaflet-control-display-poly-vertices::-webkit-scrollbar-thumb:hover,
+.leaflet-control-display-coords-row textarea::-webkit-scrollbar-thumb:hover {
+	background: #4a4a6a;
 }
 
 .leaflet-control-display-new-btn {
@@ -471,15 +510,12 @@ textarea {
 }
 
 .leaflet-control-display-expanded-rect {
+	--rect-label-width: 56px;
 	min-width: 380px;
 }
 
 .leaflet-control-display-card-hidden {
-	visibility: hidden;
-	height: 0;
-	overflow: hidden;
-	padding-top: 0 !important;
-	padding-bottom: 0 !important;
+	display: none;
 }
 
 .leaflet-control-credits {
