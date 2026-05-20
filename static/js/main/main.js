@@ -9,6 +9,7 @@ import "../plugins/leaflet.plane.js"
 import "../plugins/leaflet.position.js"
 import "../plugins/leaflet.displays.js"
 import "../plugins/leaflet.urllayers.js"
+import "../plugins/leaflet.objectIcons.js"
 import "../plugins/leaflet.rect.js"
 import "../plugins/leaflet.clickcopy.js"
 import "../plugins/leaflet.graph.js"
@@ -100,11 +101,21 @@ void (function (global) {
 		.addTo(runescape_map)
 		.bringToBack()
 
-	let objects = L.tileLayer.main("layers-osrs/locations/{zoom}/{plane}_{x}_{y}.png", {
+	let objectTiles = L.tileLayer.main("layers-osrs/locations/{zoom}/{plane}_{x}_{y}.png", {
 		minZoom: -4,
 		maxNativeZoom: 2,
 		maxZoom: 8
 	})
+
+	// Pins for interactable objects. They render only inside the active area
+	// selection (the top-left "MAP" rect card, box or poly), fetched per visible
+	// region on demand. Painted tiles + pins share this one toggle.
+	let objectPins = L.objectIcons({
+		folder: "data_osrs",
+		shardPath: "data_osrs/object_pins"
+	})
+
+	let objects = L.layerGroup([objectTiles, objectPins])
 
 	let grid = L.grid({
 		bounds: [
@@ -115,7 +126,7 @@ void (function (global) {
 
 	let npcs = L.dynamicIcons({
 		dataPath: "data_osrs/NPCList_OSRS.json",
-		minZoom: -3
+		minZoom: 2
 	})
 
 	let graph = L.waspWebGraph({ dataPath: "data_osrs/waspweb-graph.json" })
