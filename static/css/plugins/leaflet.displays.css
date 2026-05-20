@@ -265,6 +265,15 @@ textarea {
 	grid-column: 1 / -1;
 }
 
+/* Separate the coordinate-entry rows from the Vertices/Coords output, matching
+   the gap the polygon mode has between its vertex list and the Vertices field.
+   Targets only the Vertices row (the map-row right after a numeric input). */
+.leaflet-control-display-form-rect
+	.leaflet-control-display-input-copy-wrapper
+	+ .leaflet-control-map-row {
+	margin-top: 15px;
+}
+
 .leaflet-control-display-input-copy-wrapper {
 	position: relative;
 	display: flex;
