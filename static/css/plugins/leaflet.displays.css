@@ -389,6 +389,10 @@ textarea {
 	margin-bottom: 10px;
 }
 
+.leaflet-control-display-form-poly .leaflet-control-map-row {
+	margin-bottom: 10px;
+}
+
 .leaflet-control-display-poly-vertex-row {
 	display: flex;
 	gap: 8px;

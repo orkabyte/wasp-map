@@ -409,7 +409,7 @@ export default void (function (factory) {
 				newBounds.getSouthWest(),
 				newBounds.getNorthWest(),
 				newBounds.getNorthEast(),
-				newBounds.getSouthEast(),
+				newBounds.getSouthEast()
 			]
 			for (let i = 0; i < 4; i++) {
 				if (i !== changedIdx && i !== oppositeIdx) {
@@ -667,6 +667,10 @@ export default void (function (factory) {
 	let newIconSvg =
 		'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="9" y1="3" x2="9" y2="15"/><line x1="3" y1="9" x2="15" y2="9"/></svg>'
 
+	function formatVertices(verts) {
+		return "[" + verts.map((v) => `[${v[0]}, ${v[1]}]`).join(",") + "]"
+	}
+
 	function wrapWithCopyBtn(input, map) {
 		let wrapper = L.DomUtil.create("div", "leaflet-control-display-input-copy-wrapper")
 		input.parentNode.insertBefore(wrapper, input)
@@ -865,6 +869,14 @@ export default void (function (factory) {
 				wrapWithCopyBtn(input, map)
 			})
 
+			let boxVertsRow = L.DomUtil.create("div", "leaflet-control-map-row", this._boxCard)
+			let boxVertsLabel = L.DomUtil.create("label", "leaflet-control-display-label", boxVertsRow)
+			boxVertsLabel.innerHTML = "Vertices"
+			this._boxVertices = L.DomUtil.create("input", "leaflet-control-map-input", boxVertsRow)
+			this._boxVertices.setAttribute("type", "text")
+			this._boxVertices.setAttribute("readOnly", true)
+			wrapWithCopyBtn(this._boxVertices, map)
+
 			let boxCoordsRow = L.DomUtil.create(
 				"div",
 				"leaflet-control-display-coords-row",
@@ -924,6 +936,14 @@ export default void (function (factory) {
 				"leaflet-control-display-poly-vertices",
 				this._polyCard
 			)
+
+			let polyVertsRow = L.DomUtil.create("div", "leaflet-control-map-row", this._polyCard)
+			let polyVertsLabel = L.DomUtil.create("label", "leaflet-control-display-label", polyVertsRow)
+			polyVertsLabel.innerHTML = "Vertices"
+			this._polyVertices = L.DomUtil.create("input", "leaflet-control-map-input", polyVertsRow)
+			this._polyVertices.setAttribute("type", "text")
+			this._polyVertices.setAttribute("readOnly", true)
+			wrapWithCopyBtn(this._polyVertices, map)
 
 			let coordsRow = L.DomUtil.create("div", "leaflet-control-display-coords-row", this._polyCard)
 			let coordsLabel = L.DomUtil.create("label", "leaflet-control-display-label", coordsRow)
@@ -1076,6 +1096,12 @@ export default void (function (factory) {
 			this.y2.value = global.y2
 			this._boxField.value = `Box(${global.x1}, ${global.y1}, ${global.x2}, ${global.y2})`
 			this._arrayField.value = `[${global.x1}, ${global.y1}, ${global.x2}, ${global.y2}]`
+			this._boxVertices.value = formatVertices([
+				[global.x1, global.y1],
+				[global.x2, global.y1],
+				[global.x2, global.y2],
+				[global.x1, global.y2]
+			])
 			this.map1400.value = `Map.SetupChunk(Chunk([${chunk.x1}, ${chunk.y1}, ${chunk.x2}, ${
 				chunk.y2
 			}], ${this._map.getPlane()}));`
@@ -1114,6 +1140,10 @@ export default void (function (factory) {
 			let latlngs = this.poly.getVertexLatLngs()
 			let gameCoords = latlngs.map((ll) => mapToGame(ll))
 			let planeOffset = 13056 * this._map.getPlane()
+
+			this._polyVertices.value = formatVertices(
+				gameCoords.map((c) => [Math.round(c.x + planeOffset), Math.round(c.y)])
+			)
 
 			this._updateVertexList(gameCoords, planeOffset)
 
