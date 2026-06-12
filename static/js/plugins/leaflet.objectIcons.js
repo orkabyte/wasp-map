@@ -23,6 +23,67 @@ export default void (function (factory) {
 	// SHARD_SHIFT in scripts/generate-object-pins.ts (16x16 chunks = 1024 units).
 	var SHARD_SHIFT = 4
 
+	function getSelection(map) {
+		return map._areaSelections || map._areaSelection
+	}
+
+	function objectFilterMatches(filter, rec, config) {
+		if (filter.target !== "object") {
+			return true
+		}
+		if (filter.by === "id") {
+			return String(rec.id) === String(filter.value)
+		}
+		if (filter.by === "name") {
+			return String(rec.n || "").toLowerCase() === String(filter.value || "").toLowerCase()
+		}
+		if (filter.by === "action" && config) {
+			return (config.actions || []).some(function (action) {
+				return String(action || "").toLowerCase() === String(filter.value || "").toLowerCase()
+			})
+		}
+		return false
+	}
+
+	function getAreaObjectFilters(sel, lat, lng) {
+		if (!sel.matches) {
+			return { showAll: true, filters: [] }
+		}
+		var areas = sel.matches(lat, lng)
+		if (!areas.length) {
+			return { showAll: false, filters: [] }
+		}
+		var filters = []
+		for (var i = 0; i < areas.length; i++) {
+			var areaFilters = (areas[i].filters || []).filter(function (filter) {
+				return filter.target === "object"
+			})
+			if (!areaFilters.length) {
+				return { showAll: true, filters: [] }
+			}
+			filters = filters.concat(areaFilters)
+		}
+		return { showAll: false, filters: filters }
+	}
+
+	function hasActionFilters(filters) {
+		return filters.some(function (filter) {
+			return filter.by === "action"
+		})
+	}
+
+	function matchesNonActionFilter(filters, rec) {
+		return filters.some(function (filter) {
+			return filter.by !== "action" && objectFilterMatches(filter, rec)
+		})
+	}
+
+	function matchesActionFilter(filters, rec, config) {
+		return filters.some(function (filter) {
+			return filter.by === "action" && objectFilterMatches(filter, rec, config)
+		})
+	}
+
 	// On-demand object pin layer. Reuses L.DynamicIcons' visible-tile machinery,
 	// but only renders pins that fall inside the active area selection (the rect
 	// tool's box/poly). Region shards (data_osrs/object_pins/{sx}_{sy}.json) are
@@ -53,6 +114,7 @@ export default void (function (factory) {
 			this._shardCache = {}
 			this._shardPromises = {}
 			this._abortControllers = {}
+			this._configCache = {}
 			this._cappedWarned = false
 			map.on("planechange", this._onPlaneChange, this)
 			map.on("areaselection", this._onSelectionChange, this)
@@ -111,7 +173,7 @@ export default void (function (factory) {
 				return
 			} // if out of minzoom/maxzoom
 
-			var sel = map._areaSelection
+			var sel = getSelection(map)
 			if (!sel) {
 				this._removeAllIcons()
 				return
@@ -251,7 +313,7 @@ export default void (function (factory) {
 		_addIcons: function (coords) {
 			var key = this._tileCoordsToKey(coords)
 			var data = this._icon_data[key]
-			var sel = this._map._areaSelection
+			var sel = getSelection(this._map)
 			var icons = []
 
 			if (data && sel) {
@@ -273,15 +335,57 @@ export default void (function (factory) {
 					var rec = data[n]
 					var lat = (rec.j << 6) + rec.y + 0.5
 					var lng = (rec.i << 6) + rec.x + 0.5
-					if (sel.contains(lat, lng)) {
+					if (!sel.contains(lat, lng)) {
+						continue
+					}
+
+					var filterState = getAreaObjectFilters(sel, lat, lng)
+					if (!filterState.showAll && !filterState.filters.length) {
+						continue
+					}
+
+					if (filterState.showAll || matchesNonActionFilter(filterState.filters, rec)) {
 						var icon = this.createIcon(rec)
 						this._map.addLayer(icon)
 						icons.push(icon)
+					} else if (hasActionFilters(filterState.filters)) {
+						this._maybeAddActionFilteredIcon(key, rec, filterState.filters)
 					}
 				}
 			}
 
 			this._icons[key] = { icons: icons, coords: coords, current: true }
+		},
+
+		_getLocationConfig: function (id) {
+			if (!this._configCache[id]) {
+				this._configCache[id] = fetch(this.options.folder + "/location_configs/" + id + ".json")
+					.then(function (res) {
+						return res.ok ? res.json() : null
+					})
+					.catch(function () {
+						return null
+					})
+			}
+			return this._configCache[id]
+		},
+
+		_maybeAddActionFilteredIcon: function (key, rec, filters) {
+			var self = this
+			this._getLocationConfig(rec.id).then(function (config) {
+				if (!config || !self._map || !self._icons[key] || !self._icons[key].current) {
+					return
+				}
+				if (!matchesActionFilter(filters, rec, config)) {
+					return
+				}
+				if (self._totalIcons() >= self.options.maxVisible) {
+					return
+				}
+				var icon = self.createIcon(rec)
+				self._map.addLayer(icon)
+				self._icons[key].icons.push(icon)
+			})
 		},
 
 		// Builds the same teardrop marker + lazy object popup as the OBJ search

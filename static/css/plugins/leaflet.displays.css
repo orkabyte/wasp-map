@@ -26,6 +26,10 @@
 	border-radius: 8px;
 	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 	border: 1px solid #3a3a4e;
+	max-height: calc(100vh - 88px);
+	overflow-y: auto;
+	overflow-x: hidden;
+	scrollbar-gutter: stable;
 }
 
 .leaflet-control-display-title {
@@ -165,6 +169,7 @@ textarea {
 	z-index: 1000;
 	display: none;
 	border-radius: 0 0 6px 6px;
+	scrollbar-gutter: stable;
 }
 
 .leaflet-control-display-autocomplete-dropdown.visible {
@@ -471,31 +476,54 @@ textarea {
 }
 
 /* Slim, themed scrollbars that sit in a reserved gutter (never overlap fields) */
+.leaflet-control-display-panel,
+.leaflet-control-display-autocomplete-dropdown,
 .leaflet-control-display-poly-vertices,
-.leaflet-control-display-coords-row textarea {
+.leaflet-control-display-coords-row textarea,
+.leaflet-control-display-area-list,
+.leaflet-control-display-filter-list {
 	scrollbar-width: thin;
-	scrollbar-color: #3a3a4e transparent;
+	scrollbar-color: #52526a #202031;
 }
 
+.leaflet-control-display-panel::-webkit-scrollbar,
+.leaflet-control-display-autocomplete-dropdown::-webkit-scrollbar,
 .leaflet-control-display-poly-vertices::-webkit-scrollbar,
-.leaflet-control-display-coords-row textarea::-webkit-scrollbar {
-	width: 8px;
+.leaflet-control-display-coords-row textarea::-webkit-scrollbar,
+.leaflet-control-display-area-list::-webkit-scrollbar,
+.leaflet-control-display-filter-list::-webkit-scrollbar {
+	width: 7px;
+	height: 7px;
 }
 
+.leaflet-control-display-panel::-webkit-scrollbar-track,
+.leaflet-control-display-autocomplete-dropdown::-webkit-scrollbar-track,
 .leaflet-control-display-poly-vertices::-webkit-scrollbar-track,
-.leaflet-control-display-coords-row textarea::-webkit-scrollbar-track {
-	background: transparent;
+.leaflet-control-display-coords-row textarea::-webkit-scrollbar-track,
+.leaflet-control-display-area-list::-webkit-scrollbar-track,
+.leaflet-control-display-filter-list::-webkit-scrollbar-track {
+	background: #202031;
+	border-radius: 999px;
 }
 
+.leaflet-control-display-panel::-webkit-scrollbar-thumb,
+.leaflet-control-display-autocomplete-dropdown::-webkit-scrollbar-thumb,
 .leaflet-control-display-poly-vertices::-webkit-scrollbar-thumb,
-.leaflet-control-display-coords-row textarea::-webkit-scrollbar-thumb {
-	background: #3a3a4e;
-	border-radius: 4px;
+.leaflet-control-display-coords-row textarea::-webkit-scrollbar-thumb,
+.leaflet-control-display-area-list::-webkit-scrollbar-thumb,
+.leaflet-control-display-filter-list::-webkit-scrollbar-thumb {
+	background: #52526a;
+	border: 2px solid #202031;
+	border-radius: 999px;
 }
 
+.leaflet-control-display-panel::-webkit-scrollbar-thumb:hover,
+.leaflet-control-display-autocomplete-dropdown::-webkit-scrollbar-thumb:hover,
 .leaflet-control-display-poly-vertices::-webkit-scrollbar-thumb:hover,
-.leaflet-control-display-coords-row textarea::-webkit-scrollbar-thumb:hover {
-	background: #4a4a6a;
+.leaflet-control-display-coords-row textarea::-webkit-scrollbar-thumb:hover,
+.leaflet-control-display-area-list::-webkit-scrollbar-thumb:hover,
+.leaflet-control-display-filter-list::-webkit-scrollbar-thumb:hover {
+	background: #6b6b85;
 }
 
 .leaflet-control-display-new-btn {
@@ -525,6 +553,114 @@ textarea {
 
 .leaflet-control-display-card-hidden {
 	display: none;
+}
+
+.leaflet-control-display-area-section {
+	border-top: 1px solid #3a3a4e;
+	padding: 8px 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.leaflet-control-display-area-meta,
+.leaflet-control-display-filter-add,
+.leaflet-control-display-filter-row,
+.leaflet-control-display-area-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.leaflet-control-display-area-check-label,
+.leaflet-control-display-area-empty,
+.leaflet-control-display-area-kind {
+	color: #a6adc8;
+	font-size: 11px;
+}
+
+.leaflet-control-display-area-color {
+	width: 32px;
+	height: 28px;
+	padding: 0;
+	border: 1px solid #3a3a4e;
+	background: #1e1e2e;
+	border-radius: 4px;
+}
+
+.leaflet-control-display-area-delete {
+	background: #313244;
+	border: 1px solid #45475a;
+	color: #cdd6f4;
+	border-radius: 4px;
+	font-size: 11px;
+	padding: 5px 8px;
+	cursor: pointer;
+}
+
+.leaflet-control-display-area-delete:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+.leaflet-control-display-area-list,
+.leaflet-control-display-filter-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-height: 110px;
+	overflow-y: auto;
+}
+
+.leaflet-control-display-area-row {
+	background: #1e1e2e;
+	border: 1px solid #3a3a4e;
+	color: #cdd6f4;
+	border-radius: 4px;
+	padding: 6px;
+	cursor: pointer;
+	justify-content: flex-start;
+	text-align: left;
+}
+
+.leaflet-control-display-area-row-active {
+	border-color: #89b4fa;
+	background: #25304a;
+}
+
+.leaflet-control-display-area-swatch {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	flex: 0 0 auto;
+}
+
+.leaflet-control-display-area-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.leaflet-control-display-filter-add .leaflet-control-display-input {
+	min-width: 0;
+	flex: 1;
+}
+
+.leaflet-control-display-filter-row {
+	justify-content: space-between;
+	color: #cdd6f4;
+	font-size: 12px;
+}
+
+.leaflet-control-display-area-tooltip {
+	background: #1e1e2e;
+	border: 1px solid #45475a;
+	color: #cdd6f4;
+	box-shadow: none;
+	font-size: 11px;
+	padding: 2px 5px;
 }
 
 .leaflet-control-credits {

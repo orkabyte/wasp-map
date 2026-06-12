@@ -1006,6 +1006,9 @@ import "./plugins/leaflet.popup-builder.js"
 				fetch(this.options.dataPath)
 					.then((response) => response.json())
 					.then((response) => {
+						if (!this._map) {
+							return
+						}
 						if (this.options.filterFn) {
 							response = response.filter(this.options.filterFn)
 						}

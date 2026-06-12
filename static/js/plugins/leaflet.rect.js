@@ -84,6 +84,125 @@ export default void (function (factory) {
 		return { selected, border }
 	}
 
+	function cloneLatLngs(latlngs) {
+		return latlngs.map((ll) => L.latLng(ll.lat, ll.lng))
+	}
+
+	function pascalIdentifier(label, fallback) {
+		let name = String(label || fallback || "GeneratedArea")
+			.replace(/[^A-Za-z0-9_]+/g, " ")
+			.trim()
+			.replace(/(?:^|\s+)([A-Za-z0-9_])/g, function (_, ch) {
+				return ch.toUpperCase()
+			})
+			.replace(/[^A-Za-z0-9_]/g, "")
+
+		if (!name) name = "GeneratedArea"
+		if (/^[0-9]/.test(name)) name = "Area" + name
+		return name
+	}
+
+	function boxDataFromBounds(bounds, plane) {
+		let planeOffset = 13056 * plane
+		let global = {
+			x1: Math.round(bounds.getWest() * 4 - 4096 + planeOffset),
+			y1: Math.round(60 - (bounds.getNorth() * 4 - 50370)),
+			x2: Math.round(bounds.getEast() * 4 - 4096 + planeOffset),
+			y2: Math.round(60 - (bounds.getSouth() * 4 - 50370))
+		}
+
+		return {
+			bounds: bounds,
+			globalBox: global,
+			chunkBox: {
+				x1: (bounds.getWest() >> 6) - 1,
+				y1: (bounds.getNorth() >> 6) + 1,
+				x2: (bounds.getEast() >> 6) + 1,
+				y2: (bounds.getSouth() >> 6) - 1
+			},
+			vertices: [
+				[global.x1, global.y1],
+				[global.x2, global.y1],
+				[global.x2, global.y2],
+				[global.x1, global.y2]
+			]
+		}
+	}
+
+	function polyDataFromLatLngs(latlngs, plane) {
+		let planeOffset = 13056 * plane
+		let gameCoords = latlngs.map((ll) => mapToGame(ll))
+		let minX = Infinity,
+			maxX = -Infinity,
+			minY = Infinity,
+			maxY = -Infinity
+
+		for (let c of gameCoords) {
+			if (c.x < minX) minX = c.x
+			if (c.x > maxX) maxX = c.x
+			if (c.y < minY) minY = c.y
+			if (c.y > maxY) maxY = c.y
+		}
+
+		let result = computeTilesInPolygon(gameCoords)
+		let tiles = result ? result.selected.map((t) => [t[0] + planeOffset, t[1] + 4]) : []
+
+		return {
+			bounds: L.latLngBounds(latlngs),
+			globalBox: {
+				x1: Math.round(minX + planeOffset),
+				y1: Math.round(maxY),
+				x2: Math.round(maxX + planeOffset),
+				y2: Math.round(minY)
+			},
+			chunkBox: {
+				x1: (((minX + 4096) / 4) >> 6) - 1,
+				y1: (((50430 - minY) / 4) >> 6) + 1,
+				x2: (((maxX + 4096) / 4) >> 6) + 1,
+				y2: (((50430 - maxY) / 4) >> 6) - 1
+			},
+			vertices: gameCoords.map((c) => [Math.round(c.x + planeOffset), Math.round(c.y)]),
+			tiles: tiles,
+			tilesCapped: result === null
+		}
+	}
+
+	function pointArrayLiteral(points) {
+		return "[" + points.map((p) => "[" + p[0] + ", " + p[1] + "]").join(", ") + "]"
+	}
+
+	function boxLiteral(box) {
+		return "[" + [box.x1, box.y1, box.x2, box.y2].join(", ") + "]"
+	}
+
+	function chunkLiteral(chunk) {
+		return "Box(" + [chunk.x1, chunk.y1, chunk.x2, chunk.y2].join(", ") + ")"
+	}
+
+	function simbaString(value) {
+		return "'" + String(value).replace(/'/g, "''") + "'"
+	}
+
+	function uniqueIdentifier(base, used) {
+		let root = pascalIdentifier(base, "GeneratedArea")
+		let name = root
+		let idx = 2
+		while (used[name]) {
+			name = root + idx
+			idx++
+		}
+		used[name] = true
+		return name
+	}
+
+	function areaContains(area, lat, lng) {
+		if (area.mode === "box") {
+			return area.bounds.contains([lat, lng])
+		}
+		let pts = area.latlngs.map((ll) => ({ x: ll.lng, y: ll.lat }))
+		return pointInPolygon(lng, lat, pts)
+	}
+
 	// --- TileHighlight canvas overlay ---
 	let TileHighlight = L.Layer.extend({
 		initialize: function () {
@@ -702,6 +821,13 @@ export default void (function (factory) {
 			this._mode = "box"
 			this._drawState = null
 			this._drawCursor = null
+			this._pendingPreviousAreaId = null
+			this._suspendAreaSync = false
+			this._areas = []
+			this._activeAreaId = null
+			this._nextAreaId = 1
+			this._areaLayers = {}
+			this._areaColors = ["#00d4ff", "#f9c74f", "#90be6d", "#f94144", "#c77dff", "#43aa8b"]
 
 			this.rect = L.draggableSquare(
 				[
@@ -803,6 +929,125 @@ export default void (function (factory) {
 				function (e) {
 					L.DomEvent.stopPropagation(e)
 					this._switchMode("poly")
+				},
+				this
+			)
+
+			// --- Multi-area workspace ---
+			let areaSection = L.DomUtil.create("div", "leaflet-control-display-area-section", container)
+
+			let areaNameRow = L.DomUtil.create("div", "leaflet-control-map-row", areaSection)
+			let areaNameLabel = L.DomUtil.create("label", "leaflet-control-display-label", areaNameRow)
+			areaNameLabel.textContent = "Label"
+			this._areaLabelInput = L.DomUtil.create("input", "leaflet-control-map-input", areaNameRow)
+			this._areaLabelInput.setAttribute("type", "text")
+			this._areaLabelInput.setAttribute("placeholder", "Area label")
+
+			let areaMetaRow = L.DomUtil.create("div", "leaflet-control-display-area-meta", areaSection)
+			this._areaEnabledInput = L.DomUtil.create("input", "", areaMetaRow)
+			this._areaEnabledInput.setAttribute("type", "checkbox")
+			this._areaEnabledInput.checked = true
+			let enabledLabel = L.DomUtil.create(
+				"label",
+				"leaflet-control-display-area-check-label",
+				areaMetaRow
+			)
+			enabledLabel.textContent = "Enabled"
+			this._areaColorInput = L.DomUtil.create(
+				"input",
+				"leaflet-control-display-area-color",
+				areaMetaRow
+			)
+			this._areaColorInput.setAttribute("type", "color")
+			this._areaColorInput.value = "#00d4ff"
+			this._deleteAreaBtn = L.DomUtil.create(
+				"button",
+				"leaflet-control-display-area-delete",
+				areaMetaRow
+			)
+			this._deleteAreaBtn.setAttribute("type", "button")
+			this._deleteAreaBtn.textContent = "Delete"
+
+			this._areaList = L.DomUtil.create("div", "leaflet-control-display-area-list", areaSection)
+
+			let filterHeader = L.DomUtil.create(
+				"div",
+				"leaflet-control-display-section-title-inline",
+				areaSection
+			)
+			filterHeader.textContent = "Filters"
+			let filterRow = L.DomUtil.create("div", "leaflet-control-display-filter-add", areaSection)
+			this._filterTarget = L.DomUtil.create("select", "leaflet-control-display-input", filterRow)
+			;["object", "npc"].forEach((value) => {
+				let option = L.DomUtil.create("option", "", this._filterTarget)
+				option.value = value
+				option.textContent = value === "object" ? "Object" : "NPC"
+			})
+			this._filterBy = L.DomUtil.create("select", "leaflet-control-display-input", filterRow)
+			;["name", "id", "action"].forEach((value) => {
+				let option = L.DomUtil.create("option", "", this._filterBy)
+				option.value = value
+				option.textContent = value
+			})
+			this._filterValue = L.DomUtil.create("input", "leaflet-control-display-input", filterRow)
+			this._filterValue.setAttribute("type", "text")
+			this._filterValue.setAttribute("placeholder", "value")
+			this._addFilterBtn = L.DomUtil.create(
+				"button",
+				"leaflet-control-display-area-delete",
+				filterRow
+			)
+			this._addFilterBtn.setAttribute("type", "button")
+			this._addFilterBtn.textContent = "Add"
+			this._filterList = L.DomUtil.create("div", "leaflet-control-display-filter-list", areaSection)
+
+			if (this.attachAutocomplete) {
+				this.attachAutocomplete(this._filterValue, "data_osrs/object_name_collection.json")
+			}
+
+			let scaffoldRow = L.DomUtil.create("div", "leaflet-control-display-coords-row", areaSection)
+			let scaffoldLabel = L.DomUtil.create("label", "leaflet-control-display-label", scaffoldRow)
+			scaffoldLabel.textContent = "Scaffold"
+			this._scaffoldOutput = L.DomUtil.create("textarea", "", scaffoldRow)
+			this._scaffoldOutput.setAttribute("readOnly", true)
+			this._scaffoldOutput.setAttribute("rows", "8")
+
+			let manifestRow = L.DomUtil.create("div", "leaflet-control-display-coords-row", areaSection)
+			let manifestLabel = L.DomUtil.create("label", "leaflet-control-display-label", manifestRow)
+			manifestLabel.textContent = "JSON"
+			this._manifestOutput = L.DomUtil.create("textarea", "", manifestRow)
+			this._manifestOutput.setAttribute("readOnly", true)
+			this._manifestOutput.setAttribute("rows", "5")
+
+			L.DomEvent.on(this._areaLabelInput, "change", this._onAreaMetaChange, this)
+			L.DomEvent.on(this._areaEnabledInput, "change", this._onAreaMetaChange, this)
+			L.DomEvent.on(this._areaColorInput, "change", this._onAreaMetaChange, this)
+			L.DomEvent.on(this._deleteAreaBtn, "click", this._deleteActiveArea, this)
+			L.DomEvent.on(this._addFilterBtn, "click", this._addActiveFilter, this)
+			L.DomEvent.on(this._filterTarget, "change", this._onFilterTargetChange, this)
+			L.DomEvent.on(
+				this._scaffoldOutput,
+				"click",
+				function (e) {
+					L.DomEvent.stopPropagation(e)
+					if (this._scaffoldOutput.value) {
+						navigator.clipboard.writeText(this._scaffoldOutput.value).then(() => {
+							this._map.addMessage("Copied Simba scaffold to clipboard")
+						})
+					}
+				},
+				this
+			)
+			L.DomEvent.on(
+				this._manifestOutput,
+				"click",
+				function (e) {
+					L.DomEvent.stopPropagation(e)
+					if (this._manifestOutput.value) {
+						navigator.clipboard.writeText(this._manifestOutput.value).then(() => {
+							this._map.addMessage("Copied area JSON to clipboard")
+						})
+					}
 				},
 				this
 			)
@@ -989,6 +1234,541 @@ export default void (function (factory) {
 			return container
 		},
 
+		_getActiveArea: function () {
+			return this._areas.find((area) => area.id === this._activeAreaId) || null
+		},
+
+		_createArea: function (mode, data) {
+			let id = "area-" + this._nextAreaId++
+			let color = this._areaColors[(this._nextAreaId - 2) % this._areaColors.length]
+			let area = L.extend(
+				{
+					id: id,
+					label: "Area " + (this._nextAreaId - 1),
+					mode: mode,
+					plane: this._map.getPlane(),
+					color: color,
+					enabled: true,
+					filters: []
+				},
+				data
+			)
+			this._areas.push(area)
+			this._activeAreaId = id
+			return area
+		},
+
+		_syncActiveAreaFromBox: function (bounds) {
+			if (!bounds) return null
+			let plane = this._map.getPlane()
+			let data = boxDataFromBounds(bounds, plane)
+			let area = this._getActiveArea()
+			if (!area || area.mode !== "box") {
+				area = this._createArea("box", {})
+			}
+			L.extend(area, data, {
+				mode: "box",
+				plane: plane,
+				latlngs: [
+					L.latLng(bounds.getNorth(), bounds.getWest()),
+					L.latLng(bounds.getSouth(), bounds.getEast())
+				]
+			})
+			this._refreshAreaUi()
+			return area
+		},
+
+		_syncActiveAreaFromPoly: function (latlngs) {
+			if (!latlngs || latlngs.length < 3) return null
+			let plane = this._map.getPlane()
+			let data = polyDataFromLatLngs(latlngs, plane)
+			let area = this._getActiveArea()
+			if (!area || area.mode !== "poly") {
+				area = this._createArea("poly", {})
+			}
+			L.extend(area, data, {
+				mode: "poly",
+				plane: plane,
+				latlngs: cloneLatLngs(latlngs)
+			})
+			this._refreshAreaUi()
+			return area
+		},
+
+		_refreshAreaUi: function () {
+			this._renderAreaList()
+			this._renderFilterList()
+			this._renderAreaLayers()
+			this._updateAreaMetaInputs()
+			this._updateScaffold()
+			this._emitSelection()
+			this._syncFilterPreview()
+		},
+
+		_updateAreaMetaInputs: function () {
+			if (!this._areaLabelInput) return
+			let area = this._getActiveArea()
+			let disabled = !area
+			this._areaLabelInput.disabled = disabled
+			this._areaEnabledInput.disabled = disabled
+			this._areaColorInput.disabled = disabled
+			this._deleteAreaBtn.disabled = disabled
+			this._addFilterBtn.disabled = disabled
+			if (!area) {
+				this._areaLabelInput.value = ""
+				this._areaEnabledInput.checked = false
+				this._areaColorInput.value = "#00d4ff"
+				return
+			}
+			if (document.activeElement !== this._areaLabelInput) {
+				this._areaLabelInput.value = area.label
+			}
+			this._areaEnabledInput.checked = area.enabled
+			this._areaColorInput.value = area.color
+		},
+
+		_onAreaMetaChange: function () {
+			let area = this._getActiveArea()
+			if (!area) return
+			area.label = this._areaLabelInput.value.trim() || area.label
+			area.enabled = this._areaEnabledInput.checked
+			area.color = this._areaColorInput.value
+			if (this._mode === "box" && this.rect) {
+				this.rect.setStyle({ color: area.color, fillColor: area.color })
+			} else if (this.poly) {
+				this.poly.setStyle({ color: area.color, fillColor: area.color })
+			}
+			this._refreshAreaUi()
+		},
+
+		_renderAreaList: function () {
+			if (!this._areaList) return
+			this._areaList.innerHTML = ""
+			if (!this._areas.length) {
+				let empty = L.DomUtil.create("div", "leaflet-control-display-area-empty", this._areaList)
+				empty.textContent = "Draw an area to add it here."
+				return
+			}
+			this._areas.forEach((area) => {
+				let row = L.DomUtil.create("button", "leaflet-control-display-area-row", this._areaList)
+				row.setAttribute("type", "button")
+				if (area.id === this._activeAreaId) {
+					L.DomUtil.addClass(row, "leaflet-control-display-area-row-active")
+				}
+				let swatch = L.DomUtil.create("span", "leaflet-control-display-area-swatch", row)
+				swatch.style.background = area.color
+				let name = L.DomUtil.create("span", "leaflet-control-display-area-name", row)
+				name.textContent = area.label
+				let meta = L.DomUtil.create("span", "leaflet-control-display-area-kind", row)
+				meta.textContent = (area.enabled ? "" : "off ") + area.mode + " p" + area.plane
+				L.DomEvent.on(
+					row,
+					"click",
+					function (e) {
+						L.DomEvent.stopPropagation(e)
+						this._selectArea(area.id)
+					},
+					this
+				)
+			})
+		},
+
+		_renderAreaLayers: function () {
+			if (!this._map) return
+			for (let id in this._areaLayers) {
+				this._areaLayers[id].remove()
+			}
+			this._areaLayers = {}
+			this._areas.forEach((area) => {
+				if (area.id === this._activeAreaId || !area.latlngs || !area.enabled) return
+				let layer =
+					area.mode === "box"
+						? L.rectangle(L.latLngBounds(area.latlngs), {
+								color: area.color,
+								fillColor: area.color,
+								fillOpacity: 0.08,
+								weight: 2,
+								dashArray: "4,4",
+								bubblingMouseEvents: false
+							})
+						: L.polygon(area.latlngs, {
+								color: area.color,
+								fillColor: area.color,
+								fillOpacity: 0.08,
+								weight: 2,
+								dashArray: "4,4",
+								bubblingMouseEvents: false
+							})
+				layer.bindTooltip(area.label, {
+					permanent: true,
+					direction: "center",
+					className: "leaflet-control-display-area-tooltip"
+				})
+				layer.addTo(this._map)
+				this._areaLayers[area.id] = layer
+			})
+		},
+
+		_selectArea: function (id) {
+			let area = this._areas.find((item) => item.id === id)
+			if (!area) return
+			this._cancelDrawing()
+			this._activeAreaId = id
+			this._switchMode(area.mode)
+
+			if (area.mode === "box") {
+				let bounds = L.latLngBounds(area.latlngs)
+				this.rect.setBounds(bounds)
+				if (!this.rect._map) this.rect.addTo(this._map)
+				this.updateBox(bounds)
+			} else {
+				if (this.poly) {
+					this.poly.remove()
+				}
+				this.poly = new L.DraggablePolygon(area.latlngs, L.extend({ owner: this }, polyOpts))
+				this.poly.addTo(this._map)
+				this._tileHighlight.addTo(this._map)
+				this._polyLatlngs = cloneLatLngs(area.latlngs)
+				this.updatePoly()
+			}
+			this._refreshAreaUi()
+		},
+
+		_deleteActiveArea: function (e) {
+			if (e) L.DomEvent.stopPropagation(e)
+			let activeId = this._activeAreaId
+			if (!activeId) return
+			let idx = this._areas.findIndex((area) => area.id === activeId)
+			if (idx === -1) return
+			this._areas.splice(idx, 1)
+			this._activeAreaId = this._areas[idx] ? this._areas[idx].id : this._areas[idx - 1]?.id || null
+			if (this._activeAreaId) {
+				this._selectArea(this._activeAreaId)
+			} else {
+				if (this.rect && this.rect._map) this.rect.remove()
+				if (this.poly) {
+					this.poly.remove()
+					this.poly = null
+				}
+				if (this._tileHighlight._map) this._tileHighlight.remove()
+				this._refreshAreaUi()
+			}
+		},
+
+		_onFilterTargetChange: function () {
+			if (!this._filterValue || !this.attachAutocomplete) return
+			let url =
+				this._filterTarget.value === "npc"
+					? "data_osrs/npc_name_collection.json"
+					: "data_osrs/object_name_collection.json"
+			this.attachAutocomplete(this._filterValue, url)
+		},
+
+		_addActiveFilter: function (e) {
+			if (e) L.DomEvent.stopPropagation(e)
+			let area = this._getActiveArea()
+			if (!area) return
+			let value = this._filterValue.value.trim()
+			if (!value) return
+			area.filters.push({
+				target: this._filterTarget.value,
+				by: this._filterBy.value,
+				value: value
+			})
+			this._filterValue.value = ""
+			this._refreshAreaUi()
+		},
+
+		_renderFilterList: function () {
+			if (!this._filterList) return
+			this._filterList.innerHTML = ""
+			let area = this._getActiveArea()
+			if (!area || !area.filters.length) {
+				let empty = L.DomUtil.create("div", "leaflet-control-display-area-empty", this._filterList)
+				empty.textContent = "No filters on active area."
+				return
+			}
+			area.filters.forEach((filter, idx) => {
+				let row = L.DomUtil.create("div", "leaflet-control-display-filter-row", this._filterList)
+				let text = L.DomUtil.create("span", "", row)
+				text.textContent = filter.target + " " + filter.by + ": " + filter.value
+				let del = L.DomUtil.create("button", "leaflet-control-display-area-delete", row)
+				del.setAttribute("type", "button")
+				del.textContent = "x"
+				L.DomEvent.on(
+					del,
+					"click",
+					function (e) {
+						L.DomEvent.stopPropagation(e)
+						area.filters.splice(idx, 1)
+						this._refreshAreaUi()
+					},
+					this
+				)
+			})
+		},
+
+		_hasPreviewableObjectFilters: function () {
+			return this._areas.some((area) =>
+				(area.filters || []).some((filter) => area.enabled && filter.target === "object")
+			)
+		},
+
+		_hasNpcFilters: function () {
+			return this._areas.some((area) =>
+				(area.filters || []).some((filter) => area.enabled && filter.target === "npc")
+			)
+		},
+
+		_npcFilterMatches: function (filter, item) {
+			if (filter.by === "id") {
+				return String(item.id) === String(filter.value)
+			}
+			if (filter.by === "action") {
+				return (item.actions || []).some(
+					(action) => String(action).toLowerCase() === String(filter.value).toLowerCase()
+				)
+			}
+			return String(item.name || "").toLowerCase() === String(filter.value).toLowerCase()
+		},
+
+		_npcMatchesAreaFilters: function (item) {
+			let lat = item.y + 0.5
+			let lng = item.x + 0.5
+			return this._areas.some((area) => {
+				if (!area.enabled || !areaContains(area, lat, lng)) return false
+				let filters = (area.filters || []).filter((filter) => filter.target === "npc")
+				return filters.length && filters.some((filter) => this._npcFilterMatches(filter, item))
+			})
+		},
+
+		_syncFilterPreview: function () {
+			if (
+				!this._map ||
+				typeof L.objectIcons !== "function" ||
+				typeof L.dynamicIcons !== "function"
+			) {
+				return
+			}
+			let previewSignature = JSON.stringify(
+				this._areas.map((area) => ({
+					id: area.id,
+					enabled: area.enabled,
+					mode: area.mode,
+					plane: area.plane,
+					bounds: area.globalBox,
+					vertices: area.vertices,
+					filters: area.filters
+				}))
+			)
+
+			if (this._hasPreviewableObjectFilters()) {
+				if (!this._objectFilterPreview) {
+					this._objectFilterPreview = L.objectIcons({
+						folder: "data_osrs",
+						shardPath: "data_osrs/object_pins"
+					})
+				}
+				if (!this._objectFilterPreview._map) {
+					this._objectFilterPreview.addTo(this._map)
+				} else {
+					this._objectFilterPreview._onSelectionChange()
+				}
+			} else if (this._objectFilterPreview) {
+				this._objectFilterPreview.remove()
+				this._objectFilterPreview = null
+			}
+
+			if (this._hasNpcFilters()) {
+				if (this._npcFilterPreview && this._npcPreviewSignature !== previewSignature) {
+					this._npcFilterPreview.remove()
+					this._npcFilterPreview = null
+				}
+				if (!this._npcFilterPreview) {
+					this._npcPreviewSignature = previewSignature
+					this._npcFilterPreview = L.dynamicIcons({
+						dataPath: "data_osrs/NPCList_OSRS.json",
+						minZoom: 2,
+						show3d: false,
+						markerClass: "huechange",
+						filterFn: (item) => this._npcMatchesAreaFilters(item)
+					}).addTo(this._map)
+				}
+			} else if (this._npcFilterPreview) {
+				this._npcFilterPreview.remove()
+				this._npcFilterPreview = null
+				this._npcPreviewSignature = null
+			}
+		},
+
+		_clearFilterPreviews: function () {
+			if (this._objectFilterPreview) {
+				this._objectFilterPreview.remove()
+				this._objectFilterPreview = null
+			}
+			if (this._npcFilterPreview) {
+				this._npcFilterPreview.remove()
+				this._npcFilterPreview = null
+				this._npcPreviewSignature = null
+			}
+		},
+
+		_updateScaffold: function () {
+			if (!this._scaffoldOutput) return
+			this._scaffoldOutput.value = this._generateScaffold()
+			if (this._manifestOutput) {
+				this._manifestOutput.value = this._generateManifest()
+			}
+		},
+
+		_generateManifest: function () {
+			return JSON.stringify(
+				{
+					version: 1,
+					generatedBy: "WaspScripts Web Map",
+					areas: this._areas.map((area) => ({
+						id: area.id,
+						label: area.label,
+						mode: area.mode,
+						plane: area.plane,
+						color: area.color,
+						enabled: area.enabled,
+						globalBox: area.globalBox,
+						chunkBox: area.chunkBox,
+						vertices: area.vertices,
+						tiles: area.tiles,
+						tilesCapped: !!area.tilesCapped,
+						latlngs: (area.latlngs || []).map((ll) => [ll.lat, ll.lng]),
+						filters: area.filters || []
+					}))
+				},
+				null,
+				2
+			)
+		},
+
+		_generateScaffold: function () {
+			let areas = this._areas.filter((area) => area.enabled && area.chunkBox)
+			if (!areas.length) {
+				return "// Draw and enable one or more areas to generate Simba 2.0 scaffold."
+			}
+
+			let usedNames = {}
+			let areaNames = new Map()
+			areas.forEach((area) => {
+				areaNames.set(area.id, uniqueIdentifier(area.label, usedNames))
+			})
+
+			let filterEntries = []
+			areas.forEach((area) => {
+				;(area.filters || []).forEach((filter, idx) => {
+					filterEntries.push({
+						area: area,
+						filter: filter,
+						name: uniqueIdentifier(
+							areaNames.get(area.id) + " " + filter.target + " " + filter.by + " " + (idx + 1),
+							usedNames
+						)
+					})
+				})
+			})
+
+			let lines = [
+				"// Generated from WaspScripts Web Map.",
+				"// Review object sizes/uptext/actions before using interactions.",
+				"",
+				"{$I WaspLib/osrs.simba}",
+				"",
+				"var"
+			]
+
+			areas.forEach((area, idx) => {
+				let name = areaNames.get(area.id)
+				lines.push("  " + name + "Chunk: TBox = " + boxLiteral(area.chunkBox) + ";")
+				lines.push("  " + name + "Area: TBox = " + boxLiteral(area.globalBox) + ";")
+				if (area.mode === "poly") {
+					lines.push("  " + name + "Poly: TPolygon = " + pointArrayLiteral(area.vertices) + ";")
+					if (area.tilesCapped) {
+						lines.push("  // " + name + "Tiles omitted: area exceeds 50,000 tiles.")
+					} else {
+						lines.push(
+							"  " + name + "Tiles: TPointArray = " + pointArrayLiteral(area.tiles || []) + ";"
+						)
+					}
+				} else {
+					lines.push(
+						"  " + name + "Vertices: TPointArray = " + pointArrayLiteral(area.vertices) + ";"
+					)
+				}
+				if (idx < areas.length - 1) lines.push("")
+			})
+
+			if (filterEntries.length) {
+				lines.push("")
+				filterEntries.forEach((entry) => {
+					let typeName = entry.filter.target === "object" ? "TRSObjectArray" : "TRSEntityArray"
+					lines.push("  " + entry.name + ": " + typeName + ";")
+				})
+			}
+
+			lines.push("")
+			lines.push("procedure SetupGeneratedMap();")
+			lines.push("begin")
+			lines.push("  Map.Setup([")
+			areas.forEach((area, idx) => {
+				let suffix = idx === areas.length - 1 ? "" : ","
+				lines.push("    Chunk(" + chunkLiteral(area.chunkBox) + ", " + area.plane + ")" + suffix)
+			})
+			lines.push("  ]);")
+			lines.push("end;")
+
+			if (filterEntries.length) {
+				lines.push("")
+				lines.push("procedure SetupGeneratedFilters();")
+				lines.push("begin")
+				filterEntries.forEach((entry) => {
+					let filter = entry.filter
+					let areaName = areaNames.get(entry.area.id)
+					if (filter.target === "object") {
+						let source =
+							filter.by === "id"
+								? "ObjectsJSON.GetByID(" + filter.value + ")"
+								: filter.by === "action"
+									? "ObjectsJSON.GetByAction(" + simbaString(filter.value) + ")"
+									: "ObjectsJSON.GetByName(" + simbaString(filter.value) + ")"
+						lines.push("  " + entry.name + " := TRSObjectArray.Create(Map.Walker, " + source + ");")
+					} else {
+						let source =
+							filter.by === "id"
+								? "NPCsJSON.GetByID(" + filter.value + ")"
+								: filter.by === "action"
+									? "NPCsJSON.GetByAction(" + simbaString(filter.value) + ")"
+									: "NPCsJSON.GetByName(" + simbaString(filter.value) + ")"
+						lines.push("  " + entry.name + " := TRSEntityArray.Create(Map.Walker, " + source + ");")
+					}
+					lines.push("  // " + entry.name + " belongs to " + areaName + "Area.")
+				})
+				lines.push(
+					"  // Filter resulting coordinates against each exported Area/Poly before interacting."
+				)
+				lines.push("end;")
+				lines.push("")
+				lines.push("procedure SetupGeneratedScaffold();")
+				lines.push("begin")
+				lines.push("  SetupGeneratedMap();")
+				lines.push("  SetupGeneratedFilters();")
+				lines.push("end;")
+			} else {
+				lines.push("")
+				lines.push("procedure SetupGeneratedScaffold();")
+				lines.push("begin")
+				lines.push("  SetupGeneratedMap();")
+				lines.push("end;")
+			}
+
+			return lines.join("\n")
+		},
+
 		_switchMode: function (mode) {
 			if (mode === this._mode) return
 			this._cancelDrawing()
@@ -1009,8 +1789,10 @@ export default void (function (factory) {
 
 				if (this._expanded) {
 					let bounds = this._map.getBounds().pad(-0.3)
+					this._suspendAreaSync = !this._activeAreaId
 					this.rect.setBounds(bounds)
 					this.rect.addTo(this._map)
+					this._suspendAreaSync = false
 				}
 			} else {
 				L.DomUtil.removeClass(this._boxBtn, "leaflet-control-display-mode-btn-active")
@@ -1024,9 +1806,11 @@ export default void (function (factory) {
 
 				if (this._expanded) {
 					let latlngs = this._polyLatlngs || this._defaultPentagon()
+					this._suspendAreaSync = !this._activeAreaId
 					this.poly = new L.DraggablePolygon(latlngs, L.extend({ owner: this }, polyOpts))
 					this.poly.addTo(this._map)
 					this._tileHighlight.addTo(this._map)
+					this._suspendAreaSync = false
 				}
 			}
 		},
@@ -1127,7 +1911,7 @@ export default void (function (factory) {
 				this._boxCoords.value = formatVertices(tiles)
 			}
 
-			this._emitSelection()
+			if (!this._suspendAreaSync) this._syncActiveAreaFromBox(bounds)
 		},
 
 		update: function (boundsOrVertex) {
@@ -1181,33 +1965,33 @@ export default void (function (factory) {
 			this.map1400.value = `Map.SetupChunk(Chunk([${chunk.x1}, ${chunk.y1}, ${chunk.x2}, ${chunk.y2}], ${plane}));`
 			this.map2000.value = `Map.Setup([Chunk(Box(${chunk.x1}, ${chunk.y1}, ${chunk.x2}, ${chunk.y2}), ${plane})]);`
 
-			this._emitSelection()
+			if (!this._suspendAreaSync) this._syncActiveAreaFromPoly(latlngs)
 		},
 
-		// Publishes the current selection (box or poly) on the map as
-		// `map._areaSelection` and fires an "areaselection" event. Other layers
-		// (e.g. object pins) use this to render only what's inside the selection.
-		// Geometry is in map-unit lat/lng (lat = game Y, lng = game X), the same
-		// space markers are placed in.
+		// Publishes active and aggregate selections. Legacy consumers read
+		// map._areaSelection; newer layers can use map._areaSelections.
 		_emitSelection: function () {
 			let map = this._map
 			if (!map) return
 			let sel = null
 
-			if (this._mode === "box" && this.rect && this.rect._map) {
-				let b = this.rect.getBounds()
+			let activeArea = this._getActiveArea()
+			if (activeArea && activeArea.mode === "box" && activeArea.bounds) {
+				let b = activeArea.bounds
 				sel = {
 					mode: "box",
+					area: activeArea,
 					bounds: b,
 					contains: function (lat, lng) {
 						return b.contains([lat, lng])
 					}
 				}
-			} else if (this._mode === "poly" && this.poly && this.poly._map) {
-				let verts = this.poly.getVertexLatLngs()
+			} else if (activeArea && activeArea.mode === "poly" && activeArea.latlngs) {
+				let verts = activeArea.latlngs
 				let pts = verts.map((ll) => ({ x: ll.lng, y: ll.lat }))
 				sel = {
 					mode: "poly",
+					area: activeArea,
 					bounds: L.latLngBounds(verts),
 					contains: function (lat, lng) {
 						return pointInPolygon(lng, lat, pts)
@@ -1215,14 +1999,37 @@ export default void (function (factory) {
 				}
 			}
 
+			let enabledAreas = this._areas.filter((area) => area.enabled && area.bounds)
+			let aggregate = null
+			if (enabledAreas.length) {
+				let bounds = L.latLngBounds(
+					enabledAreas[0].bounds.getSouthWest(),
+					enabledAreas[0].bounds.getNorthEast()
+				)
+				enabledAreas.slice(1).forEach((area) => bounds.extend(area.bounds))
+				aggregate = {
+					areas: enabledAreas,
+					activeId: this._activeAreaId,
+					bounds: bounds,
+					contains: function (lat, lng) {
+						return enabledAreas.some((area) => areaContains(area, lat, lng))
+					},
+					matches: function (lat, lng) {
+						return enabledAreas.filter((area) => areaContains(area, lat, lng))
+					}
+				}
+			}
+
 			map._areaSelection = sel
-			map.fire("areaselection", { selection: sel })
+			map._areaSelections = aggregate
+			map.fire("areaselection", { selection: sel, selections: aggregate })
 		},
 
 		_clearSelection: function () {
 			if (!this._map) return
 			this._map._areaSelection = null
-			this._map.fire("areaselection", { selection: null })
+			this._map._areaSelections = null
+			this._map.fire("areaselection", { selection: null, selections: null })
 		},
 
 		_updateVertexList: function (gameCoords, planeOffset) {
@@ -1319,6 +2126,9 @@ export default void (function (factory) {
 
 			if (this.rect._map) this.rect.remove()
 			this._clearSelection()
+			this._pendingPreviousAreaId = this._activeAreaId
+			this._activeAreaId = null
+			this._refreshAreaUi()
 			this._drawState = "box_first"
 			this._map._hidePositionRect = true
 			this._map.getContainer().style.cursor = "crosshair"
@@ -1344,6 +2154,9 @@ export default void (function (factory) {
 			}
 			if (this._tileHighlight._map) this._tileHighlight.remove()
 			this._clearSelection()
+			this._pendingPreviousAreaId = this._activeAreaId
+			this._activeAreaId = null
+			this._refreshAreaUi()
 			this._drawState = "poly_first"
 			this._map._hidePositionRect = true
 			this._drawPoints = []
@@ -1393,6 +2206,8 @@ export default void (function (factory) {
 				this.rect.setBounds(bounds)
 				this.rect.addTo(this._map)
 				this._drawState = null
+				this._pendingPreviousAreaId = null
+				this.updateBox(bounds)
 			} else if (this._drawState === "poly_first") {
 				this._drawPoints.push(latlng)
 				this._drawState = "poly_drawing"
@@ -1464,6 +2279,8 @@ export default void (function (factory) {
 			this._polyLatlngs = this._drawPoints.slice()
 			this._drawPoints = []
 			this._drawState = null
+			this._pendingPreviousAreaId = null
+			this.updatePoly()
 		},
 
 		_cancelDrawing: function () {
@@ -1487,23 +2304,24 @@ export default void (function (factory) {
 				this._closeIndicator = null
 			}
 
-			// Restore previous shape
+			if (this._pendingPreviousAreaId) {
+				let previousId = this._pendingPreviousAreaId
+				this._pendingPreviousAreaId = null
+				this._drawPoints = []
+				this._drawState = null
+				this._selectArea(previousId)
+				return
+			}
+
 			if (this._drawState === "box_first" || this._drawState === "box_second") {
 				this._boxNewBtn.innerHTML = newIconSvg + " New"
-				let bounds = this._map.getBounds().pad(-0.3)
-				this.rect.setBounds(bounds)
-				this.rect.addTo(this._map)
 			} else if (this._drawState === "poly_first" || this._drawState === "poly_drawing") {
 				this._polyNewBtn.innerHTML = newIconSvg + " New"
-				if (this._polyLatlngs && this._polyLatlngs.length >= 3) {
-					this.poly = new L.DraggablePolygon(this._polyLatlngs, L.extend({ owner: this }, polyOpts))
-					this.poly.addTo(this._map)
-					this._tileHighlight.addTo(this._map)
-				}
 			}
 
 			this._drawPoints = []
 			this._drawState = null
+			this._refreshAreaUi()
 		},
 
 		expand: function () {
@@ -1511,13 +2329,17 @@ export default void (function (factory) {
 
 			if (this._mode === "box") {
 				let bounds = this._map.getBounds().pad(-0.3)
+				this._suspendAreaSync = true
 				this.rect.setBounds(bounds)
 				this.rect.addTo(this._map)
+				this._suspendAreaSync = false
 			} else {
 				let latlngs = this._polyLatlngs || this._defaultPentagon()
+				this._suspendAreaSync = true
 				this.poly = new L.DraggablePolygon(latlngs, L.extend({ owner: this }, polyOpts))
 				this.poly.addTo(this._map)
 				this._tileHighlight.addTo(this._map)
+				this._suspendAreaSync = false
 			}
 
 			return L.Control.Display.prototype.expand.call(this)
@@ -1554,6 +2376,7 @@ export default void (function (factory) {
 			if (this._tileHighlight._map) this._tileHighlight.remove()
 
 			this._clearSelection()
+			this._clearFilterPreviews()
 
 			return L.Control.Display.prototype.collapse.call(this)
 		}
