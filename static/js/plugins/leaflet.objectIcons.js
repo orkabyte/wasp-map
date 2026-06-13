@@ -45,7 +45,7 @@ export default void (function (factory) {
 		return false
 	}
 
-	function getAreaObjectFilters(sel, lat, lng) {
+	function getAreaObjectFilters(sel, lat, lng, requireFilters) {
 		if (!sel.matches) {
 			return { showAll: true, filters: [] }
 		}
@@ -59,6 +59,9 @@ export default void (function (factory) {
 				return filter.target === "object"
 			})
 			if (!areaFilters.length) {
+				if (requireFilters) {
+					continue
+				}
 				return { showAll: true, filters: [] }
 			}
 			filters = filters.concat(areaFilters)
@@ -104,7 +107,11 @@ export default void (function (factory) {
 			keepBuffer: 1,
 			// Safety cap: never render more than this many pins at once (a huge
 			// selection zoomed out could otherwise flood the DOM).
-			maxVisible: 4000
+			maxVisible: 4000,
+			// For the area editor's filter preview, only areas with object
+			// filters should render object pins. Plain object selection keeps
+			// showing all objects in unfiltered selected areas.
+			requireAreaObjectFilters: false
 		},
 
 		onAdd: function (map) {
@@ -339,7 +346,12 @@ export default void (function (factory) {
 						continue
 					}
 
-					var filterState = getAreaObjectFilters(sel, lat, lng)
+					var filterState = getAreaObjectFilters(
+						sel,
+						lat,
+						lng,
+						this.options.requireAreaObjectFilters
+					)
 					if (!filterState.showAll && !filterState.filters.length) {
 						continue
 					}

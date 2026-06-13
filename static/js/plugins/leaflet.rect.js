@@ -1564,7 +1564,8 @@ export default void (function (factory) {
 				if (!this._objectFilterPreview) {
 					this._objectFilterPreview = L.objectIcons({
 						folder: "data_osrs",
-						shardPath: "data_osrs/object_pins"
+						shardPath: "data_osrs/object_pins",
+						requireAreaObjectFilters: true
 					})
 				}
 				if (!this._objectFilterPreview._map) {
