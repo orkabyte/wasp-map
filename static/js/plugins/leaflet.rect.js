@@ -896,8 +896,17 @@ export default void (function (factory) {
 				"leaflet-control-display-section-title-inline",
 				headerRow
 			)
-			sectionTitle.textContent = "Area Selection"
-			let toggle = L.DomUtil.create("div", "leaflet-control-display-mode-toggle-inline", headerRow)
+			sectionTitle.textContent = "Areas"
+			let headerActions = L.DomUtil.create(
+				"div",
+				"leaflet-control-display-header-actions",
+				headerRow
+			)
+			let toggle = L.DomUtil.create(
+				"div",
+				"leaflet-control-display-mode-toggle-inline",
+				headerActions
+			)
 
 			this._boxBtn = L.DomUtil.create(
 				"button",
@@ -912,6 +921,14 @@ export default void (function (factory) {
 			this._polyBtn.setAttribute("type", "button")
 			this._polyBtn.setAttribute("title", "Polygon mode")
 			this._polyBtn.innerHTML = polyIconSvg
+
+			this._newAreaBtn = L.DomUtil.create(
+				"button",
+				"leaflet-control-display-new-area-btn",
+				headerActions
+			)
+			this._newAreaBtn.setAttribute("type", "button")
+			this._newAreaBtn.innerHTML = newIconSvg + " New area"
 
 			L.DomEvent.on(
 				this._boxBtn,
@@ -936,45 +953,51 @@ export default void (function (factory) {
 			// --- Multi-area workspace ---
 			let areaSection = L.DomUtil.create("div", "leaflet-control-display-area-section", container)
 
-			let areaNameRow = L.DomUtil.create("div", "leaflet-control-map-row", areaSection)
+			this._areaList = L.DomUtil.create("div", "leaflet-control-display-area-list", areaSection)
+
+			let areaEditor = L.DomUtil.create("div", "leaflet-control-display-area-editor", areaSection)
+			let areaNameRow = L.DomUtil.create("div", "leaflet-control-display-area-field", areaEditor)
 			let areaNameLabel = L.DomUtil.create("label", "leaflet-control-display-label", areaNameRow)
 			areaNameLabel.textContent = "Label"
 			this._areaLabelInput = L.DomUtil.create("input", "leaflet-control-map-input", areaNameRow)
 			this._areaLabelInput.setAttribute("type", "text")
 			this._areaLabelInput.setAttribute("placeholder", "Area label")
 
-			let areaMetaRow = L.DomUtil.create("div", "leaflet-control-display-area-meta", areaSection)
+			let areaMetaRow = L.DomUtil.create("div", "leaflet-control-display-area-field", areaEditor)
+			let areaMetaLabel = L.DomUtil.create("span", "leaflet-control-display-label", areaMetaRow)
+			areaMetaLabel.textContent = "Style"
+			let areaMetaControls = L.DomUtil.create(
+				"div",
+				"leaflet-control-display-area-meta",
+				areaMetaRow
+			)
 			this._areaEnabledInput = L.DomUtil.create("input", "", areaMetaRow)
 			this._areaEnabledInput.setAttribute("type", "checkbox")
 			this._areaEnabledInput.checked = true
 			let enabledLabel = L.DomUtil.create(
 				"label",
 				"leaflet-control-display-area-check-label",
-				areaMetaRow
+				areaMetaControls
 			)
+			areaMetaControls.insertBefore(this._areaEnabledInput, enabledLabel)
 			enabledLabel.textContent = "Enabled"
 			this._areaColorInput = L.DomUtil.create(
 				"input",
 				"leaflet-control-display-area-color",
-				areaMetaRow
+				areaMetaControls
 			)
+			this._areaColorInput.setAttribute("title", "Area color")
 			this._areaColorInput.setAttribute("type", "color")
 			this._areaColorInput.value = "#00d4ff"
 			this._deleteAreaBtn = L.DomUtil.create(
 				"button",
 				"leaflet-control-display-area-delete",
-				areaMetaRow
+				areaMetaControls
 			)
 			this._deleteAreaBtn.setAttribute("type", "button")
 			this._deleteAreaBtn.textContent = "Delete"
 
-			this._areaList = L.DomUtil.create("div", "leaflet-control-display-area-list", areaSection)
-
-			let filterHeader = L.DomUtil.create(
-				"div",
-				"leaflet-control-display-section-title-inline",
-				areaSection
-			)
+			let filterHeader = L.DomUtil.create("div", "leaflet-control-display-subsection-title", areaSection)
 			filterHeader.textContent = "Filters"
 			let filterRow = L.DomUtil.create("div", "leaflet-control-display-filter-add", areaSection)
 			this._filterTarget = L.DomUtil.create("select", "leaflet-control-display-input", filterRow)
@@ -1025,6 +1048,19 @@ export default void (function (factory) {
 			L.DomEvent.on(this._deleteAreaBtn, "click", this._deleteActiveArea, this)
 			L.DomEvent.on(this._addFilterBtn, "click", this._addActiveFilter, this)
 			L.DomEvent.on(this._filterTarget, "change", this._onFilterTargetChange, this)
+			L.DomEvent.on(
+				this._newAreaBtn,
+				"click",
+				function (e) {
+					L.DomEvent.stopPropagation(e)
+					if (this._mode === "box") {
+						this._handleNewBox()
+					} else {
+						this._handleNewPoly()
+					}
+				},
+				this
+			)
 			L.DomEvent.on(
 				this._scaffoldOutput,
 				"click",
@@ -1148,25 +1184,6 @@ export default void (function (factory) {
 				this
 			)
 
-			// Box New button
-			this._boxNewBtn = L.DomUtil.create(
-				"button",
-				"leaflet-control-display-submit leaflet-control-display-new-btn",
-				this._boxCard
-			)
-			this._boxNewBtn.setAttribute("type", "button")
-			this._boxNewBtn.innerHTML = newIconSvg + " New"
-
-			L.DomEvent.on(
-				this._boxNewBtn,
-				"click",
-				function (e) {
-					L.DomEvent.stopPropagation(e)
-					this._handleNewBox()
-				},
-				this
-			)
-
 			this._boxCard.addEventListener("change", this.changeRect.bind(this))
 
 			// --- Poly card ---
@@ -1208,25 +1225,6 @@ export default void (function (factory) {
 							this._map.addMessage("Copied polygon coordinates to clipboard")
 						})
 					}
-				},
-				this
-			)
-
-			// Poly New button
-			this._polyNewBtn = L.DomUtil.create(
-				"button",
-				"leaflet-control-display-submit leaflet-control-display-new-btn",
-				this._polyCard
-			)
-			this._polyNewBtn.setAttribute("type", "button")
-			this._polyNewBtn.innerHTML = newIconSvg + " New"
-
-			L.DomEvent.on(
-				this._polyNewBtn,
-				"click",
-				function (e) {
-					L.DomEvent.stopPropagation(e)
-					this._handleNewPoly()
 				},
 				this
 			)
@@ -2132,7 +2130,8 @@ export default void (function (factory) {
 			this._drawState = "box_first"
 			this._map._hidePositionRect = true
 			this._map.getContainer().style.cursor = "crosshair"
-			this._boxNewBtn.innerHTML = newIconSvg + " Cancel"
+			this._newAreaBtn.innerHTML = newIconSvg + " Cancel"
+			L.DomUtil.addClass(this._newAreaBtn, "leaflet-control-display-new-area-btn-cancel")
 
 			this._drawMapClick = this._onDrawMapClick.bind(this)
 			this._drawMapMove = this._onDrawMapMove.bind(this)
@@ -2161,7 +2160,8 @@ export default void (function (factory) {
 			this._map._hidePositionRect = true
 			this._drawPoints = []
 			this._map.getContainer().style.cursor = "crosshair"
-			this._polyNewBtn.innerHTML = newIconSvg + " Cancel"
+			this._newAreaBtn.innerHTML = newIconSvg + " Cancel"
+			L.DomUtil.addClass(this._newAreaBtn, "leaflet-control-display-new-area-btn-cancel")
 
 			this._previewLine = L.polyline([], {
 				color: "#00d4ff",
@@ -2200,7 +2200,7 @@ export default void (function (factory) {
 				}
 				this._removeDrawCursor()
 				this._map.getContainer().style.cursor = ""
-				this._boxNewBtn.innerHTML = newIconSvg + " New"
+				this._resetNewAreaButton()
 
 				let bounds = L.latLngBounds([this._drawCorner1, latlng])
 				this.rect.setBounds(bounds)
@@ -2271,7 +2271,7 @@ export default void (function (factory) {
 			}
 			this._removeDrawCursor()
 			this._map.getContainer().style.cursor = ""
-			this._polyNewBtn.innerHTML = newIconSvg + " New"
+			this._resetNewAreaButton()
 
 			this.poly = new L.DraggablePolygon(this._drawPoints, L.extend({ owner: this }, polyOpts))
 			this.poly.addTo(this._map)
@@ -2309,19 +2309,22 @@ export default void (function (factory) {
 				this._pendingPreviousAreaId = null
 				this._drawPoints = []
 				this._drawState = null
+				this._resetNewAreaButton()
 				this._selectArea(previousId)
 				return
 			}
 
-			if (this._drawState === "box_first" || this._drawState === "box_second") {
-				this._boxNewBtn.innerHTML = newIconSvg + " New"
-			} else if (this._drawState === "poly_first" || this._drawState === "poly_drawing") {
-				this._polyNewBtn.innerHTML = newIconSvg + " New"
-			}
+			this._resetNewAreaButton()
 
 			this._drawPoints = []
 			this._drawState = null
 			this._refreshAreaUi()
+		},
+
+		_resetNewAreaButton: function () {
+			if (!this._newAreaBtn) return
+			this._newAreaBtn.innerHTML = newIconSvg + " New area"
+			L.DomUtil.removeClass(this._newAreaBtn, "leaflet-control-display-new-area-btn-cancel")
 		},
 
 		expand: function () {
